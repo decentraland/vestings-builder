@@ -1,6 +1,7 @@
 {
   "version": 2,
   "name": "vestings-deployer",
+  "alias": "dcl-genvesting.now.sh",
   "github": {
     "silent": true
   }

@@ -140,20 +140,17 @@ function App() {
         <Modal open={!!txHash}>
           <Container>
             <Center>
-              <h3>
+              <a
+                href={`https://${
+                  chainId === 3 ? 'ropsten.' : ''
+                }etherscan.io/tx/${txHash}`}
+                rel="noopener noreferrer"
+                target="_blank"
+              >
                 {`https://${
                   chainId === 3 ? 'ropsten.' : ''
                 }etherscan.io/tx/${txHash}`}
-                <a
-                  href={`https://${
-                    chainId === 3 ? 'ropsten.' : ''
-                  }etherscan.io/tx/${txHash}`}
-                  rel="noopener noreferrer"
-                  target="_blank"
-                >
-                  {txHash}
-                </a>
-              </h3>
+              </a>
             </Center>
           </Container>
         </Modal>
