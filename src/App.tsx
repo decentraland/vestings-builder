@@ -1,12 +1,12 @@
 import {
   Button,
-  Center,
   Container,
   Field,
   Footer,
   Loader,
   Modal,
   Segment,
+  Close,
 } from 'decentraland-ui'
 import 'decentraland-ui/lib/styles.css'
 import React, { useEffect, useState, useCallback } from 'react'
@@ -48,7 +48,6 @@ function App() {
   const [duration, setDuration] = useState(365 * 5 * 24 * 60 * 60)
   const [ethAddress, setEth] = useState('')
   const { library, chainId, account, activate } = useWeb3React()
-  console.log(library, chainId, account)
 
   useEffect(() => {
     activate(injected)
@@ -133,13 +132,22 @@ function App() {
     loading,
   ])
 
+  const closeModal = useCallback(() => {
+    setTxHash(null)
+  }, [])
+
   return (
     <Container>
       <div className="App">
         <Loader active={loading} size="big" />
-        <Modal open={!!txHash}>
-          <Container>
-            <Center>
+        <Modal
+          size="large"
+          open={!!txHash}
+          closeIcon={<Close onClick={closeModal} />}
+        >
+          <Modal.Header>Transaction sent!</Modal.Header>
+          <Modal.Content>
+            <>
               <a
                 href={`https://${
                   chainId === 3 ? 'ropsten.' : ''
@@ -151,8 +159,8 @@ function App() {
                   chainId === 3 ? 'ropsten.' : ''
                 }etherscan.io/tx/${txHash}`}
               </a>
-            </Center>
-          </Container>
+            </>
+          </Modal.Content>
         </Modal>
         <div></div>
         <Segment>
