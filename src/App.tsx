@@ -31,7 +31,7 @@ const ADDRESSES: {
     FACTORY: '',
   },
   3: {
-    IMPLEMENTATION: '0x81330f8bf0f3805de6ab211da4fcb5c4a95d5245',
+    IMPLEMENTATION: '0x0f88e7963212f70db30dfa0cf4d28114990c021b',
     FACTORY: '0xcbfa36f59246ae43cb827a77f6ca955b93dd6042',
   },
 }
