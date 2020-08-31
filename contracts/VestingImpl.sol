@@ -1,11 +1,3 @@
-/**
- *Submitted for verification at Etherscan.io on 2019-10-20
-*/
-
-/**
- *Submitted for verification at Etherscan.io on 2017-10-29
-*/
-
 pragma solidity ^0.4.13;
 
 library Math {
@@ -117,86 +109,6 @@ library SafeERC20 {
   }
 }
 
-contract ReturnVestingRegistry is Ownable {
-
-  mapping (address => address) public returnAddress;
-
-  function record(address from, address to) onlyOwner public {
-    require(from != 0);
-
-    returnAddress[from] = to;
-  }
-}
-
-contract TerraformReserve is Ownable {
-
-  /* Storing a balance for each user */
-  mapping (address => uint256) public lockedBalance;
-
-  /* Store the total sum locked */
-  uint public totalLocked;
-
-  /* Reference to the token */
-  ERC20 public manaToken;
-
-  /* Contract that will assign the LAND and burn/return tokens */
-  address public landClaim;
-
-  /* Prevent the token from accepting deposits */
-  bool public acceptingDeposits;
-
-  event LockedBalance(address user, uint mana);
-  event LandClaimContractSet(address target);
-  event LandClaimExecuted(address user, uint value, bytes data);
-  event AcceptingDepositsChanged(bool _acceptingDeposits);
-
-  function TerraformReserve(address _token) {
-    require(_token != 0);
-    manaToken = ERC20(_token);
-    acceptingDeposits = true;
-  }
-
-  /**
-   * Lock MANA into the contract.
-   * This contract does not have another way to take the tokens out other than
-   * through the target contract.
-   */
-  function lockMana(address _from, uint256 mana) public {
-    require(acceptingDeposits);
-    require(mana >= 1000 * 1e18);
-    require(manaToken.transferFrom(_from, this, mana));
-
-    lockedBalance[_from] += mana;
-    totalLocked += mana;
-    LockedBalance(_from, mana);
-  }
-
-  /**
-   * Allows the owner of the contract to pause acceptingDeposits
-   */
-  function changeContractState(bool _acceptingDeposits) public onlyOwner {
-    acceptingDeposits = _acceptingDeposits;
-    AcceptingDepositsChanged(acceptingDeposits);
-  }
-
-  /**
-   * Set the contract that can move the staked MANA.
-   * Calls the `approve` function of the ERC20 token with the total amount.
-   */
-  function setTargetContract(address target) public onlyOwner {
-    landClaim = target;
-    manaToken.approve(landClaim, totalLocked);
-    LandClaimContractSet(target);
-  }
-
-  /**
-   * Prevent payments to the contract
-   */
-  function () public payable {
-    revert();
-  }
-}
-
 contract TokenVesting is Ownable {
   using SafeMath for uint256;
   using SafeERC20 for ERC20;
@@ -213,6 +125,7 @@ contract TokenVesting is Ownable {
 
   bool public revocable;
   bool public revoked;
+  bool public initialized;
 
   uint256 public released;
 
@@ -228,17 +141,21 @@ contract TokenVesting is Ownable {
    * @param _revocable whether the vesting is revocable or not
    * @param _token address of the ERC20 token contract
    */
-  function _initTokenVesting(
+  function initialize(
+    address _owner,
     address _beneficiary,
     uint256 _start,
     uint256 _cliff,
     uint256 _duration,
     bool    _revocable,
     address _token
-  ) internal {
+  ) public {
+    require(!initialized);
     require(_beneficiary != 0x0);
     require(_cliff <= _duration);
 
+    initialized = true;
+    owner       = _owner;
     beneficiary = _beneficiary;
     start       = _start;
     cliff       = _start.add(_cliff);
@@ -342,52 +259,5 @@ contract TokenVesting is Ownable {
   function releaseForeignToken(ERC20 _token, uint256 amount) onlyOwner {
     require(_token != token);
     _token.transfer(owner, amount);
-  }
-}
-
-contract DecentralandVesting is TokenVesting {
-  using SafeERC20 for ERC20;
-
-  event LockedMANA(uint256 amount);
-
-  ReturnVestingRegistry public returnVesting;
-  TerraformReserve public terraformReserve;
-  bool public initialized;
-
-  function initialize(
-    address               _owner,
-    address               _beneficiary,
-    uint256               _start,
-    uint256               _cliff,
-    uint256               _duration,
-    bool                  _revocable,
-    ERC20                 _token,
-    ReturnVestingRegistry _returnVesting,
-    TerraformReserve      _terraformReserve
-  ) public
-  {
-    require(!initialized, "Already initialized");
-    initialized= true;
-    _initTokenVesting(_beneficiary, _start, _cliff, _duration, _revocable, _token) ;
-    returnVesting    = ReturnVestingRegistry(_returnVesting);
-    terraformReserve = TerraformReserve(_terraformReserve);
-    owner = _owner;
-  }
-
-  function lockMana(uint256 amount) onlyBeneficiary public {
-    // Require allowance to be enough
-    require(token.allowance(beneficiary, terraformReserve) >= amount);
-
-    // Check the balance of the vesting contract
-    require(amount <= token.balanceOf(this));
-
-    // Check the registry of the beneficiary is fixed to return to this contract
-    require(returnVesting.returnAddress(beneficiary) == address(this));
-
-    // Transfer and lock
-    token.safeTransfer(beneficiary, amount);
-    terraformReserve.lockMana(beneficiary, amount);
-
-    LockedMANA(amount);
   }
 }

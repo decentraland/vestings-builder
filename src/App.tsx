@@ -24,15 +24,18 @@ const ADDRESSES: {
   [key: number]: {
     IMPLEMENTATION: string
     FACTORY: string
+    MANA: string
   }
 } = {
   1: {
     IMPLEMENTATION: '',
     FACTORY: '',
+    MANA: '0x0f5d2fb29fb7d3cfee444a200298f468908cc942',
   },
   3: {
-    IMPLEMENTATION: '0x0f88e7963212f70db30dfa0cf4d28114990c021b',
+    IMPLEMENTATION: '0xc243b243a2033348730420ea55239767802a19d0',
     FACTORY: '0xcbfa36f59246ae43cb827a77f6ca955b93dd6042',
+    MANA: '0x2a8fd99c19271f4f04b1b7b9c4f7cf264b626edb',
   },
 }
 
@@ -90,9 +93,7 @@ function App() {
       const _beneficiary = ethAddress
       const _start = Math.round(new Date(startDate).getTime() / 1000)
       const _revocable = true
-      const _token = '0x0f5d2fb29fb7d3cfee444a200298f468908cc942'
-      const _returnVesting = '0x0000000000000000000000000000000000001337'
-      const _terraformReserve = '0x0000000000000000000000000000000000001337'
+      const _token = ADDRESSES[chainId].MANA
       const {
         data,
       } = await vestingImplementation.populateTransaction.initialize(
@@ -102,9 +103,7 @@ function App() {
         cliff,
         duration,
         _revocable,
-        _token,
-        _returnVesting,
-        _terraformReserve
+        _token
       )
 
       const tx = await vestingFactory.createVesting(
@@ -195,7 +194,12 @@ function App() {
             onChange={(ev) => setDuration(Number(ev.target.value))}
             placeholder="Duration in seconds"
           />
-          <Button id="submit" onClick={sendRequest}>
+          <Button
+            primary
+            id="submit"
+            onClick={sendRequest}
+            disabled={!ethAddress}
+          >
             Create Vesting Contract
           </Button>
         </Segment>

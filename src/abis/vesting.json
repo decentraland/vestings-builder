@@ -58,34 +58,6 @@
   {
     "constant": true,
     "inputs": [],
-    "name": "terraformReserve",
-    "outputs": [
-      {
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "payable": false,
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "constant": true,
-    "inputs": [],
-    "name": "returnVesting",
-    "outputs": [
-      {
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "payable": false,
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "constant": true,
-    "inputs": [],
     "name": "vestedAmount",
     "outputs": [
       {
@@ -154,14 +126,6 @@
       },
       {
         "name": "_token",
-        "type": "address"
-      },
-      {
-        "name": "_returnVesting",
-        "type": "address"
-      },
-      {
-        "name": "_terraformReserve",
         "type": "address"
       }
     ],
@@ -267,20 +231,6 @@
     "constant": false,
     "inputs": [
       {
-        "name": "amount",
-        "type": "uint256"
-      }
-    ],
-    "name": "lockMana",
-    "outputs": [],
-    "payable": false,
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "constant": false,
-    "inputs": [
-      {
         "name": "target",
         "type": "address"
       }
@@ -332,18 +282,6 @@
     "payable": false,
     "stateMutability": "view",
     "type": "function"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": false,
-        "name": "amount",
-        "type": "uint256"
-      }
-    ],
-    "name": "LockedMANA",
-    "type": "event"
   },
   {
     "anonymous": false,
