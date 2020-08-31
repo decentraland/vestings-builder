@@ -194,7 +194,12 @@ function App() {
             onChange={(ev) => setDuration(Number(ev.target.value))}
             placeholder="Duration in seconds"
           />
-          <Button id="submit" onClick={sendRequest}>
+          <Button
+            primary
+            id="submit"
+            onClick={sendRequest}
+            disabled={!ethAddress}
+          >
             Create Vesting Contract
           </Button>
         </Segment>
