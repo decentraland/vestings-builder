@@ -91,8 +91,6 @@ function App() {
       const _start = Math.round(new Date(startDate).getTime() / 1000)
       const _revocable = true
       const _token = '0x0f5d2fb29fb7d3cfee444a200298f468908cc942'
-      const _returnVesting = '0x0000000000000000000000000000000000001337'
-      const _terraformReserve = '0x0000000000000000000000000000000000001337'
       const {
         data,
       } = await vestingImplementation.populateTransaction.initialize(
@@ -102,9 +100,7 @@ function App() {
         cliff,
         duration,
         _revocable,
-        _token,
-        _returnVesting,
-        _terraformReserve
+        _token
       )
 
       const tx = await vestingFactory.createVesting(
