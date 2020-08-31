@@ -221,7 +221,7 @@ contract TokenVesting is Ownable {
    * @param _revocable whether the vesting is revocable or not
    * @param _token address of the ERC20 token contract
    */
-  function initTokenVesting(
+  function initialize(
     address _owner,
     address _beneficiary,
     uint256 _start,
