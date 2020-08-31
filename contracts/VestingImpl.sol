@@ -222,18 +222,20 @@ contract TokenVesting is Ownable {
    * @param _token address of the ERC20 token contract
    */
   function initTokenVesting(
+    address _owner,
     address _beneficiary,
     uint256 _start,
     uint256 _cliff,
     uint256 _duration,
     bool    _revocable,
     address _token
-  ) public onlyOwner {
+  ) public {
     require(!initialized);
     require(_beneficiary != 0x0);
     require(_cliff <= _duration);
 
     initialized = true;
+    owner       = _owner;
     beneficiary = _beneficiary;
     start       = _start;
     cliff       = _start.add(_cliff);
