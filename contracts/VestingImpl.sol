@@ -1,11 +1,3 @@
-/**
- *Submitted for verification at Etherscan.io on 2019-10-20
-*/
-
-/**
- *Submitted for verification at Etherscan.io on 2017-10-29
-*/
-
 pragma solidity ^0.4.13;
 
 library Math {
@@ -213,6 +205,7 @@ contract TokenVesting is Ownable {
 
   bool public revocable;
   bool public revoked;
+  bool public initialized;
 
   uint256 public released;
 
@@ -228,17 +221,19 @@ contract TokenVesting is Ownable {
    * @param _revocable whether the vesting is revocable or not
    * @param _token address of the ERC20 token contract
    */
-  function _initTokenVesting(
+  function initTokenVesting(
     address _beneficiary,
     uint256 _start,
     uint256 _cliff,
     uint256 _duration,
     bool    _revocable,
     address _token
-  ) internal {
+  ) public onlyOwner {
+    require(!initialized);
     require(_beneficiary != 0x0);
     require(_cliff <= _duration);
 
+    initialized = true;
     beneficiary = _beneficiary;
     start       = _start;
     cliff       = _start.add(_cliff);
@@ -342,52 +337,5 @@ contract TokenVesting is Ownable {
   function releaseForeignToken(ERC20 _token, uint256 amount) onlyOwner {
     require(_token != token);
     _token.transfer(owner, amount);
-  }
-}
-
-contract DecentralandVesting is TokenVesting {
-  using SafeERC20 for ERC20;
-
-  event LockedMANA(uint256 amount);
-
-  ReturnVestingRegistry public returnVesting;
-  TerraformReserve public terraformReserve;
-  bool public initialized;
-
-  function initialize(
-    address               _owner,
-    address               _beneficiary,
-    uint256               _start,
-    uint256               _cliff,
-    uint256               _duration,
-    bool                  _revocable,
-    ERC20                 _token,
-    ReturnVestingRegistry _returnVesting,
-    TerraformReserve      _terraformReserve
-  ) public
-  {
-    require(!initialized, "Already initialized");
-    initialized= true;
-    _initTokenVesting(_beneficiary, _start, _cliff, _duration, _revocable, _token) ;
-    returnVesting    = ReturnVestingRegistry(_returnVesting);
-    terraformReserve = TerraformReserve(_terraformReserve);
-    owner = _owner;
-  }
-
-  function lockMana(uint256 amount) onlyBeneficiary public {
-    // Require allowance to be enough
-    require(token.allowance(beneficiary, terraformReserve) >= amount);
-
-    // Check the balance of the vesting contract
-    require(amount <= token.balanceOf(this));
-
-    // Check the registry of the beneficiary is fixed to return to this contract
-    require(returnVesting.returnAddress(beneficiary) == address(this));
-
-    // Transfer and lock
-    token.safeTransfer(beneficiary, amount);
-    terraformReserve.lockMana(beneficiary, amount);
-
-    LockedMANA(amount);
   }
 }
