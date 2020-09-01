@@ -28,8 +28,8 @@ const ADDRESSES: {
   }
 } = {
   1: {
-    IMPLEMENTATION: '',
-    FACTORY: '',
+    IMPLEMENTATION: '0x42f32e19365d8045661a006408cc6d1064039fbf',
+    FACTORY: '0xe357273545c152f07afe2c38257b7b653fd3f6d0',
     MANA: '0x0f5d2fb29fb7d3cfee444a200298f468908cc942',
   },
   3: {
