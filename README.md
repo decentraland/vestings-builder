@@ -1,1 +1,1 @@
-# Decentraland Vesting Generator
+# Vesting Builder

@@ -1,19 +1,12 @@
 {
   "compilerOptions": {
     "target": "es5",
-    "lib": ["dom", "dom.iterable", "esnext"],
-    "allowJs": true,
-    "skipLibCheck": true,
-    "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
+    "module": "commonjs",
     "strict": true,
-    "forceConsistentCasingInFileNames": true,
-    "module": "esnext",
-    "moduleResolution": "node",
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "noEmit": true,
-    "jsx": "react"
+    "esModuleInterop": true,
+    "outDir": "dist",
+    "resolveJsonModule": true
   },
-  "include": ["src"]
+  "include": ["./scripts", "./test"],
+  "files": ["./hardhat.config.ts"]
 }

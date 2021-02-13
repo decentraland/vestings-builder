@@ -1,43 +1,43 @@
 {
-  "name": "genvesting",
-  "version": "0.1.0",
-  "private": true,
-  "dependencies": {
-    "@ethersproject/contracts": "^5.0.3",
-    "@ethersproject/providers": "^5.0.6",
-    "@ethersproject/random": "^5.0.3",
-    "@types/jest": "^26.0.10",
-    "@types/node": "^14.6.1",
-    "@types/react": "^16.9.48",
-    "@types/react-dom": "^16.9.8",
-    "@web3-react/core": "^6.1.1",
-    "@web3-react/injected-connector": "^6.0.7",
-    "decentraland-ui": "^2.10.2",
-    "react": "^16.10.2",
-    "react-dom": "^16.10.2",
-    "react-scripts": "3.2.0",
-    "typescript": "^4.0.2",
-    "web3modal": "^1.9.0"
-  },
+  "name": "vestings-builder",
+  "version": "0.0.1",
+  "description": "Vesting contract builder",
+  "main": "index.js",
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "test": "scripts/test.sh",
+    "test:gas-report": "REPORT_GAS=true NETWORK=local npm run test",
+    "lint": "npx eslint test && npx solium -d contracts",
+    "lint:fix": "npx eslint --fix test && npx solium -d contracts --fix",
+    "compile": "npx hardhat compile"
   },
-  "eslintConfig": {
-    "extends": "react-app"
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:decentraland/vestings-builder.git"
   },
-  "browserslist": {
-    "production": [
-      ">0.2%",
-      "not dead",
-      "not op_mini all"
-    ],
-    "development": [
-      "last 1 chrome version",
-      "last 1 firefox version",
-      "last 1 safari version"
-    ]
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/decentraland/vestings-builder/issues"
+  },
+  "homepage": "https://github.com/decentraland/vestings-builder#readme",
+  "devDependencies": {
+    "@nomiclabs/hardhat-ganache": "^2.0.0",
+    "@nomiclabs/hardhat-truffle5": "^2.0.0",
+    "@nomiclabs/hardhat-web3": "^2.0.0",
+    "babel-cli": "^6.26.0",
+    "babel-eslint": "^8.2.1",
+    "babel-plugin-transform-object-rest-spread": "^6.26.0",
+    "babel-polyfill": "^6.26.0",
+    "babel-preset-env": "^1.6.1",
+    "babel-register": "^6.26.0",
+    "eslint": "^4.18.2",
+    "eslint-config-prettier": "^2.9.0",
+    "eslint-plugin-prettier": "^2.4.0",
+    "ganache-cli": "^6.9.1",
+    "hardhat": "^2.0.8",
+    "hardhat-gas-reporter": "^1.0.4",
+    "prettier": "^2.0.2",
+    "ts-node": "^9.1.1",
+    "typescript": "^4.1.5"
   }
 }

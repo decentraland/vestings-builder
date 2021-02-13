@@ -1,20 +1,14 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.6.12;
+pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/utils/Address.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/math/SafeMath.sol";
 
-contract MinimalProxyFactory is Ownable {
-    using Address for address;
-
+contract MinimalProxyFactory {
     event VestingCreated(address indexed _address, bytes32 _salt);
 
-    constructor() public {
-    }
+    constructor() {}
 
-    function createVesting(address _implementation, bytes32 _salt, bytes memory _data) public virtual returns (address addr) {
+    function createVesting(address _implementation, bytes32 _salt, bytes memory _data) external {
         bytes32 salt = keccak256(abi.encodePacked(_salt, msg.sender));
 
         // solium-disable-next-line security/no-inline-assembly
@@ -24,6 +18,7 @@ contract MinimalProxyFactory is Ownable {
             hex"5af43d82803e903d91602b57fd5bf3"
         );
 
+        address addr;
         assembly {
             addr := create2(0, add(slotcode, 0x20), mload(slotcode), salt)
         }

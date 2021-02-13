@@ -30,7 +30,7 @@ const ADDRESSES: {
   1: {
     IMPLEMENTATION: '0x42f32e19365d8045661a006408cc6d1064039fbf',
     FACTORY: '0xe357273545c152f07afe2c38257b7b653fd3f6d0',
-    MANA: '0x0f5d2fb29fb7d3cfee444a200298f468908cc942',
+    MANA: '0xee06a81a695750e71a662b51066f2c74cf4478a0',
   },
   3: {
     IMPLEMENTATION: '0xc243b243a2033348730420ea55239767802a19d0',
@@ -92,7 +92,7 @@ function App() {
       )
       const _beneficiary = ethAddress
       const _start = Math.round(new Date(startDate).getTime() / 1000)
-      const _revocable = true
+      const _revocable = false
       const _token = ADDRESSES[chainId].MANA
       const {
         data,
