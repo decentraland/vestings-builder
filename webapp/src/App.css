@@ -1,5 +1,6 @@
 .App {
   text-align: center;
+  height: 100vh;
 }
 
 .App-logo {
@@ -19,4 +20,16 @@
 
 .App-link {
   color: #09d3ac;
+}
+
+.wrapper {
+  display: flex;
+  flex-direction: row;
+  max-height: 600px;
+}
+
+.wrapper .ui.segment {
+  min-width: 300px;
+  width: 50%;
+  margin: 20px;
 }

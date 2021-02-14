@@ -2,6 +2,9 @@
 
 pragma solidity ^0.8.0;
 
+import "./SafeERC20.sol";
+import "./IERC20.sol";
+
 contract Ownable {
     address public owner;
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
@@ -26,48 +29,27 @@ contract Ownable {
     }
 }
 
-abstract contract ERC20Basic {
-    uint256 public totalSupply;
-    function balanceOf(address who) public virtual view returns (uint256);
-    function transfer(address to, uint256 value) public virtual returns (bool);
-    event Transfer(address indexed from, address indexed to, uint256 value);
-}
-
-abstract contract ERC20 is ERC20Basic {
-    function allowance(address owner, address spender) public virtual view returns (uint256);
-    function transferFrom(address from, address to, uint256 value) public virtual returns (bool);
-    function approve(address spender, uint256 value) public virtual returns (bool);
-    event Approval(address indexed owner, address indexed spender, uint256 value);
-}
-
-library SafeERC20 {
-    function safeTransfer(ERC20 _token, address _to, uint256 _val) internal returns (bool) {
-        (bool success, bytes memory data) = address(_token).call(abi.encodeWithSelector(_token.transfer.selector, _to, _val));
-        return success && (data.length == 0 || abi.decode(data, (bool)));
-    }
-}
-
-contract ERC20Vesting is Ownable {
-    using SafeERC20 for ERC20;
+contract VestingERC20 is Ownable {
+    using SafeERC20 for IERC20;
 
     event Released(uint256 amount);
     event Revoked();
 
-    // beneficiary of tokens after they are released
     address public beneficiary;
 
     uint256 public cliff;
     uint256 public start;
     uint256 public duration;
+    uint256 public released;
 
     bool public revocable;
     bool public revoked;
     bool public initialized;
     bool public publicReleasable;
 
-    uint256 public released;
+    IERC20 public token;
 
-    ERC20 public token;
+    constructor() {}
 
     /**
     * @dev Creates a vesting contract that vests its balance of any ERC20 token to the
@@ -101,7 +83,7 @@ contract ERC20Vesting is Ownable {
         cliff       = _start + _cliff;
         duration    = _duration;
         revocable   = _revocable;
-        token       = ERC20(_token);
+        token       = IERC20(_token);
         publicReleasable = _publicReleasable;
     }
 
@@ -118,8 +100,8 @@ contract ERC20Vesting is Ownable {
    * @param target the address to transfer the right to
    */
   function changeBeneficiary(address target) onlyBeneficiary public {
-    require(target != address(0), "ERC20Vesting#changeBeneficiary: INVALID_TARGET");
-    beneficiary = target;
+        require(target != address(0), "ERC20Vesting#changeBeneficiary: INVALID_TARGET");
+        beneficiary = target;
   }
 
     /**
@@ -188,7 +170,7 @@ contract ERC20Vesting is Ownable {
   /**
    * @notice Allow withdrawing any token other than the relevant one
    */
-  function releaseForeignToken(ERC20 _token, uint256 amount) external {
+  function releaseForeignToken(IERC20 _token, uint256 amount) external {
     require(_token != token, "ERC20Vesting#releaseForeignToken: UNAUTHORIZED_TOKEN_ADDRESS");
     require(token.safeTransfer(beneficiary, amount), "ERC20Vesting#releaseForeignToken: TRANSFER_FAILED");
   }

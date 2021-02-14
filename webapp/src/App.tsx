@@ -1,3 +1,4 @@
+import React, { useEffect, useState, useCallback } from 'react'
 import {
   Button,
   Container,
@@ -9,47 +10,30 @@ import {
   Close,
 } from 'decentraland-ui'
 import 'decentraland-ui/lib/styles.css'
-import React, { useEffect, useState, useCallback } from 'react'
-import { Contract } from '@ethersproject/contracts'
 import { randomBytes } from '@ethersproject/random'
 import Web3Modal from 'web3modal'
 import { useWeb3React } from '@web3-react/core'
 import { InjectedConnector } from '@web3-react/injected-connector'
 
-import vestingABI from './abis/vesting.json'
-import factoryABI from './abis/factory.json'
+import Graph from './components/graph'
+import { VestingFactory__factory, VestingERC20__factory } from './contracts/types'
+import { ADDRESSES } from './contracts/addresses'
 
-const SECONDS_TO_YEARS = 365 * 24 * 60 * 60
-const ADDRESSES: {
-  [key: number]: {
-    IMPLEMENTATION: string
-    FACTORY: string
-    MANA: string
-  }
-} = {
-  1: {
-    IMPLEMENTATION: '0x42f32e19365d8045661a006408cc6d1064039fbf',
-    FACTORY: '0xe357273545c152f07afe2c38257b7b653fd3f6d0',
-    MANA: '0xee06a81a695750e71a662b51066f2c74cf4478a0',
-  },
-  3: {
-    IMPLEMENTATION: '0xc243b243a2033348730420ea55239767802a19d0',
-    FACTORY: '0xcbfa36f59246ae43cb827a77f6ca955b93dd6042',
-    MANA: '0x2a8fd99c19271f4f04b1b7b9c4f7cf264b626edb',
-  },
-}
+import "./App.css"
 
-export const injected = new InjectedConnector({
-  supportedChainIds: [1, 3, 4, 5, 42],
-})
+const SECONDS_TO_YEARS = 365 * 24 * 60 * 60 // one year
+
+export const injected = new InjectedConnector({})
 
 function App() {
   const [loading, setLoading] = useState(false)
   const [txHash, setTxHash] = useState(null)
   const [startDate, setStartDate] = useState<Date | string>(new Date())
-  const [cliff, setCliff] = useState(1.5 * SECONDS_TO_YEARS)
-  const [duration, setDuration] = useState(365 * 5 * 24 * 60 * 60)
-  const [ethAddress, setEth] = useState('')
+  const [cliff, setCliff] = useState(SECONDS_TO_YEARS)
+  const [duration, setDuration] = useState(SECONDS_TO_YEARS)
+  const [beneficiary, setBeneficiary] = useState('')
+  const [token, setToken] = useState('')
+
   const { library, chainId, account, activate } = useWeb3React()
 
   useEffect(() => {
@@ -79,31 +63,30 @@ function App() {
     setLoading(true)
 
     try {
-      const vestingImplementation = new Contract(
-        ADDRESSES[chainId].IMPLEMENTATION,
-        vestingABI,
+
+      const vestingFactory = VestingFactory__factory.connect(
+        ADDRESSES[chainId].FACTORY,
         library.getSigner(account).connectUnchecked()
       )
 
-      const vestingFactory = new Contract(
-        ADDRESSES[chainId].FACTORY,
-        factoryABI,
+      const vestingImplementation = VestingERC20__factory.connect(
+        ADDRESSES[chainId].ERC20_VESTING_IMPLEMENTATION,
         library.getSigner(account).connectUnchecked()
       )
-      const _beneficiary = ethAddress
+
       const _start = Math.round(new Date(startDate).getTime() / 1000)
       const _revocable = false
-      const _token = ADDRESSES[chainId].MANA
       const {
         data,
       } = await vestingImplementation.populateTransaction.initialize(
-        account,
-        _beneficiary,
+        account!,
+        beneficiary,
         _start,
         cliff,
         duration,
         _revocable,
-        _token
+        token,
+        true
       )
 
       const tx = await vestingFactory.createVesting(
@@ -125,7 +108,8 @@ function App() {
     chainId,
     cliff,
     duration,
-    ethAddress,
+    beneficiary,
+    token,
     library,
     startDate,
     loading,
@@ -161,48 +145,54 @@ function App() {
             </>
           </Modal.Content>
         </Modal>
-        <div></div>
-        <Segment>
+        <div className="wrapper">
+          <Segment>
           <Field
-            label="Target Ethereum Address"
-            value={ethAddress}
-            onChange={(ev) => setEth(ev.target.value)}
-            placeholder="Target ethereum address"
-          />
-          <Field
-            label="Vesting Start Date"
-            value={startDate}
-            type="date"
-            onChange={(ev) => setStartDate(ev.target.value)}
-            placeholder="Target ethereum address"
-          />
-          <Field
-            label={`Cliff (about ${(cliff / SECONDS_TO_YEARS).toFixed(
-              1
-            )} years)`}
-            value={cliff}
-            type="number"
-            onChange={(ev) => setCliff(Number(ev.target.value))}
-            placeholder="Cliff in seconds"
-          />
-          <Field
-            label={`Duration (about ${(duration / SECONDS_TO_YEARS).toFixed(
-              1
-            )} years)`}
-            value={duration}
-            type="number"
-            onChange={(ev) => setDuration(Number(ev.target.value))}
-            placeholder="Duration in seconds"
-          />
-          <Button
-            primary
-            id="submit"
-            onClick={sendRequest}
-            disabled={!ethAddress}
-          >
-            Create Vesting Contract
-          </Button>
-        </Segment>
+              label="Target Ethereum Address"
+              value={beneficiary}
+              onChange={(ev) => setBeneficiary(ev.target.value)}
+              placeholder="0x...."
+            />
+            <Field
+              label="ERC20 Token Address"
+              value={token}
+              onChange={(ev) => setToken(ev.target.value)}
+              placeholder="0x...."
+            />
+            <Field
+              label="Vesting Start Date"
+              value={startDate}
+              type="date"
+              onChange={(ev) => setStartDate(ev.target.value)}
+              placeholder="Target ethereum address"
+            />
+            <Field
+              label={`Cliff (in seconds)`}
+              value={cliff}
+              type="number"
+              onChange={(ev) => setCliff(Number(ev.target.value))}
+              placeholder="Cliff in seconds"
+            />
+            <Field
+              label={`Duration (in seconds)`}
+              value={duration}
+              type="number"
+              onChange={(ev) => setDuration(Number(ev.target.value))}
+              placeholder="Duration in seconds"
+            />
+            <Button
+              primary
+              id="submit"
+              onClick={sendRequest}
+              disabled={!beneficiary || !token}
+            >
+              Create Vesting Contract
+            </Button>
+          </Segment>
+          <Segment>
+            <Graph start={new Date(startDate).getTime()} duration={duration} cliff={cliff} vestingAmount={1000000000000}/>
+          </Segment>
+        </div>
         <Footer></Footer>
       </div>
     </Container>

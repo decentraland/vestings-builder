@@ -1,0 +1,52 @@
+.schedule {
+  height: 100%;
+  width: calc(100% - 24px * 2);
+  padding-bottom: 35px;
+}
+
+.schedule h3 {
+  margin-left: 50px;
+  margin-top: 10px;
+}
+
+circle.recharts-dot.recharts-line-dot {
+  display: none;
+}
+
+.recharts-tooltip-item {
+  color: var(--gray) !important;
+  font-size: 10px;
+  padding: 0px 5px;
+}
+
+.recharts-cartesian-axis-tick-value {
+  font-size: 12px;
+}
+
+.recharts-layer.recharts-cartesian-axis-tick text {
+  font-size: 12px;
+}
+
+.yAxis .recharts-cartesian-axis-tick:nth-child(1) {
+  display: none;
+}
+
+.recharts-tooltip-label {
+  font-size: 12px;
+  padding: 5px;
+  color: black !important;
+}
+
+.recharts-tooltip-item-list li:last-child {
+  display: none !important;
+}
+
+.recharts-default-tooltip {
+  background-color: white !important;
+  border: 1px solid var(--light-gray) !important;
+}
+
+.recharts-tooltip-wrapper {
+  border: none !important;
+  padding: 0px !important;
+}
