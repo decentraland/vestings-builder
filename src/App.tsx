@@ -37,6 +37,18 @@ const ADDRESSES: {
     FACTORY: '0xcbfa36f59246ae43cb827a77f6ca955b93dd6042',
     MANA: '0x2a8fd99c19271f4f04b1b7b9c4f7cf264b626edb',
   },
+  4: {
+    IMPLEMENTATION: '0x8493bb6ae17e12c062b0eb1fe780cc0b2df16bb2',
+    FACTORY: '0x64c9f713a743458ab22ec49d88dd00621f528786',
+    MANA: '0x28bce5263f5d7f4eb7e8c6d5d78275ca455bac63',
+  },
+}
+const LINKS: {
+  [key: number]: string
+} = {
+  1: 'https://etherscan.io/tx/',
+  3: 'https://ropsten.etherscan.io/tx/',
+  4: 'https://rinkeby.etherscan.io/tx/'
 }
 
 export const injected = new InjectedConnector({
@@ -148,15 +160,11 @@ function App() {
           <Modal.Content>
             <>
               <a
-                href={`https://${
-                  chainId === 3 ? 'ropsten.' : ''
-                }etherscan.io/tx/${txHash}`}
+                href={`${LINKS[chainId!]}${txHash}`}
                 rel="noopener noreferrer"
                 target="_blank"
               >
-                {`https://${
-                  chainId === 3 ? 'ropsten.' : ''
-                }etherscan.io/tx/${txHash}`}
+                {`${LINKS[chainId!]}${txHash}`}
               </a>
             </>
           </Modal.Content>
