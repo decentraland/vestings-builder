@@ -21,6 +21,14 @@ import { ADDRESSES } from './contracts/addresses'
 
 import "./App.css"
 
+const LINKS: {
+  [key: number]: string
+} = {
+  1: 'https://etherscan.io/tx/',
+  3: 'https://ropsten.etherscan.io/tx/',
+  4: 'https://rinkeby.etherscan.io/tx/'
+}
+
 const SECONDS_TO_YEARS = 365 * 24 * 60 * 60 // one year
 
 export const injected = new InjectedConnector({})
@@ -132,15 +140,11 @@ function App() {
           <Modal.Content>
             <>
               <a
-                href={`https://${
-                  chainId === 3 ? 'ropsten.' : ''
-                }etherscan.io/tx/${txHash}`}
+                href={`${LINKS[chainId!]}${txHash}`}
                 rel="noopener noreferrer"
                 target="_blank"
               >
-                {`https://${
-                  chainId === 3 ? 'ropsten.' : ''
-                }etherscan.io/tx/${txHash}`}
+                {`${LINKS[chainId!]}${txHash}`}
               </a>
             </>
           </Modal.Content>
