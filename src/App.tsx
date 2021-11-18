@@ -5,6 +5,8 @@ import {
   Footer,
   Loader,
   Modal,
+  SelectField,
+  Radio,
   Segment,
   Close,
 } from 'decentraland-ui'
@@ -62,6 +64,8 @@ function App() {
   const [cliff, setCliff] = useState(1.5 * SECONDS_TO_YEARS)
   const [duration, setDuration] = useState(365 * 5 * 24 * 60 * 60)
   const [ethAddress, setEth] = useState('')
+  const [token, setToken] = useState(ADDRESSES[1].MANA);
+  const [revocable, setRevocable] = useState(true);
   const { library, chainId, account, activate } = useWeb3React()
 
   useEffect(() => {
@@ -104,8 +108,8 @@ function App() {
       )
       const _beneficiary = ethAddress
       const _start = Math.round(new Date(startDate).getTime() / 1000)
-      const _revocable = true
-      const _token = ADDRESSES[chainId].MANA
+      const _revocable = revocable
+      const _token = token
       const {
         data,
       } = await vestingImplementation.populateTransaction.initialize(
@@ -172,7 +176,13 @@ function App() {
         <div></div>
         <Segment>
           <Field
-            label="Target Ethereum Address"
+            label="ERC20 Token Address"
+            value={token}
+            onChange={(ev) => setToken(ev.target.value)}
+            placeholder="0x...."
+          />
+          <Field
+            label="Beneficiary Address"
             value={ethAddress}
             onChange={(ev) => setEth(ev.target.value)}
             placeholder="Target ethereum address"
@@ -202,6 +212,12 @@ function App() {
             onChange={(ev) => setDuration(Number(ev.target.value))}
             placeholder="Duration in seconds"
           />
+          <Radio
+            toggle
+            label={`Revocable`}
+            checked={revocable}
+            onChange={(ev) => setRevocable(!revocable)}
+          /><br/><br/>
           <Button
             primary
             id="submit"
