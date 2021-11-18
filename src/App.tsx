@@ -22,6 +22,7 @@ import vestingABI from './abis/vesting.json'
 import factoryABI from './abis/factory.json'
 
 const SECONDS_TO_YEARS = 365 * 24 * 60 * 60
+const SECONDS_TO_MONTHS = 30 * 24 * 60 * 60
 const ADDRESSES: {
   [key: number]: {
     IMPLEMENTATION: string
@@ -153,6 +154,10 @@ function App() {
     setTxHash(null)
   }, [])
 
+  const estimateTime = (seconds:number) => seconds >= SECONDS_TO_YEARS ?
+    `about ${(seconds / SECONDS_TO_YEARS).toFixed(1)} years` :
+    `about ${(seconds / SECONDS_TO_MONTHS).toFixed(1)} months`
+
   return (
     <Container>
       <div className="App">
@@ -197,18 +202,14 @@ function App() {
             placeholder="Target ethereum address"
           />
           <Field
-            label={`Cliff (about ${(cliff / SECONDS_TO_YEARS).toFixed(
-              1
-            )} years)`}
+            label={`Cliff (${estimateTime(cliff)})`}
             value={cliff}
             type="number"
             onChange={(ev) => setCliff(Number(ev.target.value))}
             placeholder="Cliff in seconds"
           />
           <Field
-            label={`Duration (about ${(duration / SECONDS_TO_YEARS).toFixed(
-              1
-            )} years)`}
+            label={`Duration (${estimateTime(duration)})`}
             value={duration}
             type="number"
             onChange={(ev) => setDuration(Number(ev.target.value))}
