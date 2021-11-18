@@ -58,14 +58,16 @@ export const injected = new InjectedConnector({
 })
 
 function App() {
+  var params = new URLSearchParams(window.location.search);
+
   const [loading, setLoading] = useState(false)
   const [txHash, setTxHash] = useState(null)
-  const [startDate, setStartDate] = useState<Date | string>(new Date())
-  const [cliff, setCliff] = useState(1.5 * SECONDS_TO_YEARS)
-  const [duration, setDuration] = useState(365 * 5 * 24 * 60 * 60)
-  const [ethAddress, setEth] = useState('')
-  const [token, setToken] = useState(ADDRESSES[1].MANA);
-  const [revocable, setRevocable] = useState(true);
+  const [startDate, setStartDate] = useState<Date | string>(params.get('start') || new Date().toISOString().split('T')[0])
+  const [cliff, setCliff] = useState(Number(params.get('cliff')) || 1.5 * SECONDS_TO_YEARS)
+  const [duration, setDuration] = useState(Number(params.get('duration')) || 365 * 5 * 24 * 60 * 60)
+  const [ethAddress, setEth] = useState(params.get('beneficiary') || '')
+  const [token, setToken] = useState(params.get('token') || ADDRESSES[1].MANA);
+  const [revocable, setRevocable] = useState(params.get('revocable') !== 'no');
   const { library, chainId, account, activate } = useWeb3React()
 
   useEffect(() => {
