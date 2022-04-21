@@ -1,15 +1,13 @@
 import {
   Button,
   Container,
-  Field,
   Footer,
   Loader,
   Modal,
-  Segment,
   Close,
 } from 'decentraland-ui'
 import 'decentraland-ui/lib/styles.css'
-import React, { useEffect, useState, useCallback, FormEventHandler, FormEvent } from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
 import { Contract } from '@ethersproject/contracts'
 import { randomBytes } from '@ethersproject/random'
 import Web3Modal from 'web3modal'
@@ -19,8 +17,8 @@ import { InjectedConnector } from '@web3-react/injected-connector'
 import vestingABI from './abis/vesting.json'
 import batchVestingABI from './abis/batchVesting.json'
 
+import './CreateInBatch.css'
 
-const SECONDS_TO_YEARS = 365 * 24 * 60 * 60
 const ADDRESSES: {
   [key: number]: {
     BATCH_VESTINGS: string
@@ -56,6 +54,16 @@ const LINKS: {
   4: 'https://rinkeby.etherscan.io/tx/'
 }
 
+export type dataCSV = {
+  owner: string
+  token: string
+  beneficiary: string
+  start_date: number
+  cliff: number
+  duration: number
+  revocable: boolean
+}
+
 export const injected = new InjectedConnector({
   supportedChainIds: [1, 3, 4, 5, 42],
 })
@@ -65,7 +73,7 @@ function CreateInBatch () {
     const [txHash, setTxHash] = useState(null)
     const { library, chainId, account, activate } = useWeb3React()
     const [file, setFile] = useState<Blob | null>()
-    const [array, setArray] = useState<{[key: string]: string}[]>([])
+    const [array, setArray] = useState<dataCSV[]>([])
 
     const fileReader = new FileReader()
 
@@ -74,28 +82,26 @@ function CreateInBatch () {
     }
 
     const csvFileToArray = (string: string) => {
-      const csvHeader = string.slice(0, string.indexOf("\n")).split(",")
+      const csvHeader = string.trim().slice(0, string.indexOf("\n")).split(",")
       const csvRows = string.slice(string.indexOf("\n") + 1).split("\n")
 
       const array = csvRows.map(i => {
         const values = i.split(",")
-        const obj = csvHeader.reduce((object: {[key: string]: string}, header: string, index: number) => {
-          object[header] = values[index]
+        const obj: dataCSV = csvHeader.reduce((object: any, header: string, index: number) => {
+          object[header.trim().toLowerCase().replace(' ', '_').replace('\r', '')] = values[index].replace('\r', '')
           return object
         }, {})
         return obj
       })
 
       setArray(array)
-      sendTx(array)
     }
 
-    async function sendTx(array: any) {
+    async function sendTx() {
      // don't send again while we are sending
      if (loading || !chainId) return
      // update state
      setLoading(true)
-
      try {
        const vestingImplementation = new Contract(
          ADDRESSES[chainId].IMPLEMENTATION,
@@ -110,18 +116,20 @@ function CreateInBatch () {
        )
        const inputData = []
 
-       for(const vestingData in array) {
-        const _beneficiary = (vestingData as any).benenciary
-        const _start = (vestingData as any).start // Math.round(new Date(startDate).getTime() / 1000)
-        const _revocable = (vestingData as any).revocable
-        const _token = (vestingData as any).erc20
+       for (const vestingData of array) {
+         console.log(vestingData)
+        const _owner = (vestingData as any).owner
+        const _token = (vestingData as any).token
+        const _beneficiary = (vestingData as any).beneficiary
+        const _start = (vestingData as any).start_date // Math.round(new Date(startDate).getTime() / 1000)
         const _cliff = (vestingData as any).cliff
         const _duration = (vestingData as any).duration
+        const _revocable = (vestingData as any).revocable.toLowerCase() === 'yes'
 
         const {
           data,
         } = await vestingImplementation.populateTransaction.initialize(
-          account,
+          _owner,
           _beneficiary,
           _start,
           _cliff,
@@ -211,7 +219,8 @@ function CreateInBatch () {
             </>
           </Modal.Content>
         </Modal>
-        <h1>REACTJS CSV IMPORT EXAMPLE </h1>
+        <h1>Create Vestings By CSV</h1>
+        <h2>Fields: "ERC20 Token, Beneficiary, Start Date, Cliff, Duration, Revocable"</h2>
         <form>
           <input
             type={"file"}
@@ -226,7 +235,7 @@ function CreateInBatch () {
             onClick={handleOnSubmit}
             disabled={!file}
           >
-            Create Vesting Contract
+            Process CSV
           </Button>
         </form>
 
@@ -242,8 +251,8 @@ function CreateInBatch () {
           </thead>
 
           <tbody>
-            {array.map((item) => (
-              <tr key={item.id}>
+            {array.map((item, index) => (
+              <tr key={index}>
                 {Object.values(item).map((val) => (
                   <td>{val}</td>
                 ))}
@@ -251,6 +260,14 @@ function CreateInBatch () {
             ))}
           </tbody>
         </table>
+        <Button
+            primary
+            id="submit"
+            onClick={sendTx}
+            disabled={!array.length}
+          >
+            Create Vesting Contract
+          </Button>
       <Footer></Footer>
       </div>
     </Container>

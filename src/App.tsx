@@ -5,7 +5,6 @@ import {
   Footer,
   Loader,
   Modal,
-  SelectField,
   Radio,
   Segment,
   Close,
@@ -147,6 +146,8 @@ function App() {
     ethAddress,
     library,
     startDate,
+    revocable,
+    token,
     loading,
   ])
 
