@@ -220,7 +220,10 @@ function CreateInBatch () {
           </Modal.Content>
         </Modal>
         <h1>Create Vestings By CSV</h1>
-        <h2>Fields: "ERC20 Token, Beneficiary, Start Date, Cliff, Duration, Revocable"</h2>
+        <h2>Example:</h2>
+        <h4>Owner, Token, Beneficiary, Start Date, Cliff, Duration, Revocable</h4>
+        <p>0x8493bb6ae17e12c062b0eb1fe780cc0b2df16bb2,0x0f5d2fb29fb7d3cfee444a200298f468908cc942,0x8493bb6ae17e12c062b0eb1fe780cc0b2df16bb2,1234567968,129293,129283,Yes</p>
+        <p style={{marginBottom: '30px'}}><b>Start Date, Cliff, and Duration in timestamp</b></p>
         <form>
           <input
             type={"file"}
