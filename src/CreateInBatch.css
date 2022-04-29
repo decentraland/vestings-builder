@@ -1,0 +1,22 @@
+.ui.container {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  align-content: center;
+  justify-content: center;
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+  width: 1405px;
+}
+
+.ui.primary {
+  max-width: 300px;
+  margin-top: 35px;
+}
+
+table td {
+  padding: 0 5px;
+}
