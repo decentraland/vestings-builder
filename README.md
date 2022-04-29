@@ -5,6 +5,7 @@ A dApp to deploy a [generic vesting contract](./contracts/VestingImpl.sol): A to
 ## Use it
 
 Enter: https://vestings-deployer.vercel.app/
+
 For creating in batch by using a CSV use: https://vestings-deployer.vercel.app/batch
 
 You can fill form default values using query string parameters:
