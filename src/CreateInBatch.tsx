@@ -28,7 +28,7 @@ const ADDRESSES: {
   }
 } = {
   1: {
-    BATCH_VESTINGS:'',
+    BATCH_VESTINGS:'0xc57185366bcda81cde363380e2099758712038d0',
     IMPLEMENTATION: '0x42f32e19365d8045661a006408cc6d1064039fbf',
     FACTORY: '0xe357273545c152f07afe2c38257b7b653fd3f6d0',
     MANA: '0x0f5d2fb29fb7d3cfee444a200298f468908cc942',
@@ -121,7 +121,7 @@ function CreateInBatch () {
         const _owner = (vestingData as any).owner
         const _token = (vestingData as any).token
         const _beneficiary = (vestingData as any).beneficiary
-        const _start = (vestingData as any).start_date // Math.round(new Date(startDate).getTime() / 1000)
+        const _start = (vestingData as any).start_date
         const _cliff = (vestingData as any).cliff
         const _duration = (vestingData as any).duration
         const _revocable = (vestingData as any).revocable.toLowerCase() === 'yes'
