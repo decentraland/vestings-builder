@@ -249,11 +249,12 @@ contract TokenVesting is Ownable {
       return 0;
     }
 
+    uint256 totalBalance = token.balanceOf(this).add(released);
+
     if (now >= start.add(duration) || revoked) {
       return totalBalance;
     }
 
-    uint256 totalBalance = token.balanceOf(this).add(released);
     uint256 timeFromStartToCliff = cliff.sub(start);
     uint256 timeOfElapsedPeriods = now.sub(cliff).div(period).mul(period);
 
