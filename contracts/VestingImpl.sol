@@ -141,6 +141,7 @@ contract TokenVesting is Ownable {
    * @param _duration duration in seconds of the period in which the tokens will vest
    * @param _revocable whether the vesting is revocable or not
    * @param _token address of the ERC20 token contract
+   * @param _period duration of a post cliff period
    */
   function initialize(
     address _owner,
