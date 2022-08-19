@@ -122,6 +122,7 @@ contract TokenVesting is Ownable {
   uint256 public cliff;
   uint256 public start;
   uint256 public duration;
+  uint256 public period;
 
   bool public revocable;
   bool public revoked;
@@ -148,7 +149,8 @@ contract TokenVesting is Ownable {
     uint256 _cliff,
     uint256 _duration,
     bool    _revocable,
-    address _token
+    address _token,
+    uint256 _period
   ) public {
     require(!initialized);
     require(_beneficiary != 0x0);
@@ -162,6 +164,7 @@ contract TokenVesting is Ownable {
     duration    = _duration;
     revocable   = _revocable;
     token       = ERC20(_token);
+    period      = _period;
   }
 
   /**
@@ -241,16 +244,19 @@ contract TokenVesting is Ownable {
    * @dev Calculates the amount that has already vested.
    */
   function vestedAmount() public constant returns (uint256) {
-    uint256 currentBalance = token.balanceOf(this);
-    uint256 totalBalance = currentBalance.add(released);
-
     if (now < cliff) {
       return 0;
-    } else if (now >= start.add(duration) || revoked) {
-      return totalBalance;
-    } else {
-      return totalBalance.mul(now.sub(start)).div(duration);
     }
+
+    if (now >= start.add(duration) || revoked) {
+      return totalBalance;
+    }
+
+    uint256 totalBalance = token.balanceOf(this).add(released);
+    uint256 timeFromStartToCliff = cliff.sub(start);
+    uint256 timeOfElapsedPeriods = now.sub(cliff).div(period).mul(period);
+
+    return totalBalance.mul(timeFromStartToCliff.sum(timeOfElapsedPeriods)).div(duration);
   }
 
   /**
