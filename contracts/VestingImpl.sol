@@ -258,7 +258,7 @@ contract TokenVesting is Ownable {
     uint256 timeFromStartToCliff = cliff.sub(start);
     uint256 timeOfElapsedPeriods = now.sub(cliff).div(period).mul(period);
 
-    return totalBalance.mul(timeFromStartToCliff.sum(timeOfElapsedPeriods)).div(duration);
+    return totalBalance.mul(timeFromStartToCliff.add(timeOfElapsedPeriods)).div(duration);
   }
 
   /**
