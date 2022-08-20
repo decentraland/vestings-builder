@@ -74,6 +74,25 @@ describe("TokenVesting", function () {
       await initializeTokenVesting();
       expect(Number(await tokenVesting.period())).to.be.equal(50);
     });
+
+    it("should allow period to be equal to duration - cliff", async function () {
+      initParams.period = initParams.duration - initParams.cliff;
+      await initializeTokenVesting();
+    });
+
+    it("reverts when period is higher that duration - cliff", async function () {
+      initParams.period = initParams.duration - initParams.cliff + 1;
+
+      let error;
+
+      try {
+        await initializeTokenVesting();
+      } catch (e) {
+        error = e;
+      }
+
+      expect(error).not.to.be.undefined;
+    });
   });
 
   describe("#releasableAmount", function () {
