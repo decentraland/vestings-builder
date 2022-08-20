@@ -4,7 +4,6 @@
   "private": true,
   "dependencies": {
     "@ethersproject/contracts": "^5.0.3",
-    "@ethersproject/providers": "^5.0.6",
     "@ethersproject/random": "^5.0.3",
     "@types/jest": "^26.0.10",
     "@types/node": "^14.6.1",
@@ -23,7 +22,10 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "contracts:test": "npx hardhat test",
+    "contracts:compile": "npx hardhat compile",
+    "contracts:coverage": "npx hardhat coverage"
   },
   "eslintConfig": {
     "extends": "react-app"
@@ -39,5 +41,20 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "@ethersproject/abi": "^5.7.0",
+    "@ethersproject/providers": "^5.7.0",
+    "@nomicfoundation/hardhat-chai-matchers": "^1.0.3",
+    "@nomicfoundation/hardhat-network-helpers": "^1.0.4",
+    "@nomicfoundation/hardhat-toolbox": "^1.0.2",
+    "@nomiclabs/hardhat-ethers": "^2.1.1",
+    "@nomiclabs/hardhat-etherscan": "^3.1.0",
+    "@openzeppelin/contracts": "^3.4.2",
+    "chai": "^4.3.6",
+    "ethers": "^5.7.0",
+    "hardhat": "^2.10.2",
+    "hardhat-gas-reporter": "^1.0.8",
+    "solidity-coverage": "^0.7.21"
   }
 }
