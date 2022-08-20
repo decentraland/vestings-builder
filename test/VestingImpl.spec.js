@@ -13,6 +13,8 @@ async function increaseTime(seconds) {
 }
 
 describe("TokenVesting", function () {
+  const totalBalance = 1000000;
+
   let deployer;
   let owner;
   let beneficiary;
@@ -50,7 +52,7 @@ describe("TokenVesting", function () {
     tokenVesting = await TokenVesting.deploy();
     await tokenVesting.deployed();
 
-    testToken.connect(deployer).mint(tokenVesting.address, 1000000);
+    testToken.connect(deployer).mint(tokenVesting.address, totalBalance);
 
     const start = await getPendingBlockTimestamp();
 
@@ -84,73 +86,71 @@ describe("TokenVesting", function () {
     });
 
     it("should return 250000 when the cliff is reached", async function () {
-      expect(await getReleasableAmount()).to.be.equal(0);
       await increaseTime(initParams.cliff);
       expect(await getReleasableAmount()).to.be.equal(250000);
     });
 
-    it("should return 1000000 when the duration timestamp is reached", async function () {
-      expect(await getReleasableAmount()).to.be.equal(0);
+    it("should return totalBalance when the duration timestamp is reached", async function () {
       await increaseTime(initParams.duration);
-      expect(await getReleasableAmount()).to.be.equal(1000000);
+      expect(await getReleasableAmount()).to.be.equal(totalBalance);
     });
 
-    describe("releasable amount by periods passed after cliff test suites", function () {
-      function test(amount, periods) {
-        it(`should return ${amount} when ${periods} periods have passed after the cliff`, async function () {
-          expect(await getReleasableAmount()).to.be.equal(0);
-          await increaseTime(initParams.cliff + initParams.period * periods);
-          expect(await getReleasableAmount()).to.be.equal(amount);
-        });
-      }
-
-      describe("when no periods have passed, only the amount of tokens corresponding to the time up to the cliff are releasable.", function () {
-        test(250000, 0);
-        test(250000, 0.3);
-        test(250000, 0.6);
-        test(250000, 0.9);
+    function testReleasableAfterPeriods(amount, periods) {
+      it(`should return ${
+        amount === totalBalance ? "totalBalance" : amount
+      } when ${periods} periods have passed after the cliff`, async function () {
+        await increaseTime(initParams.cliff + initParams.period * periods);
+        expect(await getReleasableAmount()).to.be.equal(amount);
       });
+    }
 
-      describe("after periods are elapsed, the user is able to release an extra amount corresponding to relative time of the previous period in relation to the duration of the whole vesting duration.", function () {
-        test(375000, 1);
-        test(375000, 1.3);
-        test(375000, 1.6);
-        test(375000, 1.9);
+    testReleasableAfterPeriods(250000, 0);
+    testReleasableAfterPeriods(250000, 0.3);
+    testReleasableAfterPeriods(250000, 0.6);
+    testReleasableAfterPeriods(250000, 0.9);
 
-        test(500000, 2);
-        test(500000, 2.3);
-        test(500000, 2.6);
-        test(500000, 2.9);
+    testReleasableAfterPeriods(375000, 1);
+    testReleasableAfterPeriods(375000, 1.3);
+    testReleasableAfterPeriods(375000, 1.6);
+    testReleasableAfterPeriods(375000, 1.9);
 
-        test(625000, 3);
-        test(625000, 3.3);
-        test(625000, 3.6);
-        test(625000, 3.9);
+    testReleasableAfterPeriods(500000, 2);
+    testReleasableAfterPeriods(500000, 2.3);
+    testReleasableAfterPeriods(500000, 2.6);
+    testReleasableAfterPeriods(500000, 2.9);
 
-        test(750000, 4);
-        test(750000, 4.3);
-        test(750000, 4.6);
-        test(750000, 4.9);
+    testReleasableAfterPeriods(625000, 3);
+    testReleasableAfterPeriods(625000, 3.3);
+    testReleasableAfterPeriods(625000, 3.6);
+    testReleasableAfterPeriods(625000, 3.9);
 
-        test(875000, 5);
-        test(875000, 5.3);
-        test(875000, 5.6);
-        test(875000, 5.9);
-      });
+    testReleasableAfterPeriods(750000, 4);
+    testReleasableAfterPeriods(750000, 4.3);
+    testReleasableAfterPeriods(750000, 4.6);
+    testReleasableAfterPeriods(750000, 4.9);
 
-      describe("there are 6 possible periods after the cliff given the initialization params. That is why after 6 periods, all the tokens are releasable.", function () {
-        test(1000000, 6);
-        test(1000000, 6.3);
-        test(1000000, 6.6);
-        test(1000000, 6.9);
-      });
+    testReleasableAfterPeriods(875000, 5);
+    testReleasableAfterPeriods(875000, 5.3);
+    testReleasableAfterPeriods(875000, 5.6);
+    testReleasableAfterPeriods(875000, 5.9);
 
-      describe("more periods than possible in the duration of the vesting will just return all the tokens available for release.", function () {
-        test(1000000, 7);
-        test(1000000, 7.3);
-        test(1000000, 7.6);
-        test(1000000, 7.9);
-      });
+    testReleasableAfterPeriods(totalBalance, 6);
+    testReleasableAfterPeriods(totalBalance, 6.3);
+    testReleasableAfterPeriods(totalBalance, 6.6);
+    testReleasableAfterPeriods(totalBalance, 6.9);
+
+    testReleasableAfterPeriods(totalBalance, 7);
+    testReleasableAfterPeriods(totalBalance, 7.3);
+    testReleasableAfterPeriods(totalBalance, 7.6);
+    testReleasableAfterPeriods(totalBalance, 7.9);
+
+    it("should return totalBalance - 250000 at the end of the vesting if the beneficiary released on cliff", async function () {
+      await increaseTime(initParams.cliff);
+      expect(await getReleasableAmount()).to.be.equal(250000);
+      await tokenVesting.connect(beneficiary).release();
+      expect(await getReleasableAmount()).to.be.equal(0);
+      await increaseTime(initParams.period * 6);
+      expect(await getReleasableAmount()).to.be.equal(totalBalance - 250000);
     });
   });
 });
