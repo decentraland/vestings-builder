@@ -51,8 +51,7 @@ describe("TokenVesting", function () {
 
     testToken.connect(deployer).mint(tokenVesting.address, totalBalance);
 
-    let start;
-    await network.provider.send("eth_getBlockByNumber", ["pending", false]).then((b) => (start = b.timestamp));
+    let start = await network.provider.send("eth_getBlockByNumber", ["pending", false]).then((b) => b.timestamp);
 
     initParams = {
       owner: owner.address,
