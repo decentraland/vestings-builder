@@ -1,7 +1,6 @@
 require("@nomiclabs/hardhat-ethers");
-require("@nomiclabs/hardhat-etherscan");
+require("@nomicfoundation/hardhat-chai-matchers");
 require("hardhat-gas-reporter");
-require("solidity-coverage");
 
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {

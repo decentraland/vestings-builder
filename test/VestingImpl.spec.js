@@ -37,10 +37,6 @@ describe("TokenVesting", function () {
       );
   }
 
-  async function getReleasableAmount() {
-    return Number(await tokenVesting.releasableAmount());
-  }
-
   beforeEach(async function () {
     [deployer, owner, beneficiary] = await ethers.getSigners();
 
@@ -70,28 +66,19 @@ describe("TokenVesting", function () {
 
   describe("#initialize", function () {
     it("should set the period variable", async function () {
-      expect(Number(await tokenVesting.period())).to.be.equal(0);
+      expect(await tokenVesting.period()).to.be.equal(0);
       await initializeTokenVesting();
-      expect(Number(await tokenVesting.period())).to.be.equal(50);
+      expect(await tokenVesting.period()).to.be.equal(50);
     });
 
     it("should allow period to be equal to duration - cliff", async function () {
       initParams.period = initParams.duration - initParams.cliff;
-      await initializeTokenVesting();
+      await expect(initializeTokenVesting()).to.not.be.reverted;
     });
 
     it("reverts when period is higher that duration - cliff", async function () {
       initParams.period = initParams.duration - initParams.cliff + 1;
-
-      let error;
-
-      try {
-        await initializeTokenVesting();
-      } catch (e) {
-        error = e;
-      }
-
-      expect(error).not.to.be.undefined;
+      await expect(initializeTokenVesting()).to.be.reverted;
     });
   });
 
@@ -101,17 +88,17 @@ describe("TokenVesting", function () {
     });
 
     it("should return 0 when it just started", async function () {
-      expect(await getReleasableAmount()).to.be.equal(0);
+      expect(await tokenVesting.releasableAmount()).to.be.equal(0);
     });
 
     it("should return 250000 when the cliff is reached", async function () {
       await increaseTime(initParams.cliff);
-      expect(await getReleasableAmount()).to.be.equal(250000);
+      expect(await tokenVesting.releasableAmount()).to.be.equal(250000);
     });
 
     it("should return totalBalance when the duration timestamp is reached", async function () {
       await increaseTime(initParams.duration);
-      expect(await getReleasableAmount()).to.be.equal(totalBalance);
+      expect(await tokenVesting.releasableAmount()).to.be.equal(totalBalance);
     });
 
     function testReleasableAfterPeriods(amount, periods) {
@@ -119,7 +106,7 @@ describe("TokenVesting", function () {
         amount === totalBalance ? "totalBalance" : amount
       } when ${periods} periods have passed after the cliff`, async function () {
         await increaseTime(initParams.cliff + initParams.period * periods);
-        expect(await getReleasableAmount()).to.be.equal(amount);
+        expect(await tokenVesting.releasableAmount()).to.be.equal(amount);
       });
     }
 
@@ -165,11 +152,13 @@ describe("TokenVesting", function () {
 
     it("should return totalBalance - 250000 at the end of the vesting if the beneficiary released on cliff", async function () {
       await increaseTime(initParams.cliff);
-      expect(await getReleasableAmount()).to.be.equal(250000);
+      expect(await tokenVesting.releasableAmount()).to.be.equal(250000);
       await tokenVesting.connect(beneficiary).release();
-      expect(await getReleasableAmount()).to.be.equal(0);
+      expect(await tokenVesting.releasableAmount()).to.be.equal(0);
       await increaseTime(initParams.period * 6);
-      expect(await getReleasableAmount()).to.be.equal(totalBalance - 250000);
+      expect(await tokenVesting.releasableAmount()).to.be.equal(
+        totalBalance - 250000
+      );
     });
   });
 });
