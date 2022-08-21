@@ -13,6 +13,11 @@ async function increaseTime(seconds) {
 
 describe("TokenVesting", function () {
   const totalBalance = 1000000;
+  const cliffAmount = 250000;
+  const period1Amount = 437500;
+  const period2Amount = 625000;
+  const period3Amount = 812500;
+  const secondsMargin = 10;
 
   let deployer;
   let owner;
@@ -81,12 +86,82 @@ describe("TokenVesting", function () {
     });
   });
 
-  describe("#releasableAmount", function () {
-    const cliffAmount = totalBalance * 0.25;
-    const period1Amount = 437500;
-    const period2Amount = 625000;
-    const period3Amount = 812500;
+  describe("#revoke", () => {
+    beforeEach(async function () {
+      await initializeTokenVesting();
+    });
 
+    it("should return totalBalance to the owner if revoked before the cliff", async function () {
+      await tokenVesting.connect(owner).revoke();
+      expect(await testToken.balanceOf(owner.address)).to.be.equal(totalBalance);
+      expect(await testToken.balanceOf(beneficiary.address)).to.be.equal(0);
+    });
+
+    it("should return cliffAmount to the beneficiary and the rest to the owner when cliff ends", async function () {
+      await increaseTime(initParams.cliff);
+      await tokenVesting.connect(owner).revoke();
+      expect(await testToken.balanceOf(owner.address)).to.be.equal(totalBalance - cliffAmount);
+      expect(await testToken.balanceOf(beneficiary.address)).to.be.equal(cliffAmount);
+    });
+
+    it("should return cliffAmount to the beneficiary and the rest to the owner with secondsMargin till the 1st period ends", async function () {
+      await increaseTime(initParams.cliff + initParams.period - secondsMargin);
+      await tokenVesting.connect(owner).revoke();
+      expect(await testToken.balanceOf(owner.address)).to.be.equal(totalBalance - cliffAmount);
+      expect(await testToken.balanceOf(beneficiary.address)).to.be.equal(cliffAmount);
+    });
+
+    it("should return period1Amount to the beneficiary and the rest to the owner when the 1st period ends", async function () {
+      await increaseTime(initParams.cliff + initParams.period);
+      await tokenVesting.connect(owner).revoke();
+      expect(await testToken.balanceOf(owner.address)).to.be.equal(totalBalance - period1Amount);
+      expect(await testToken.balanceOf(beneficiary.address)).to.be.equal(period1Amount);
+    });
+
+    it("should return period1Amount to the beneficiary and the rest to the owner with secondsMargin till the 2nd period ends", async function () {
+      await increaseTime(initParams.cliff + initParams.period * 2 - secondsMargin);
+      await tokenVesting.connect(owner).revoke();
+      expect(await testToken.balanceOf(owner.address)).to.be.equal(totalBalance - period1Amount);
+      expect(await testToken.balanceOf(beneficiary.address)).to.be.equal(period1Amount);
+    });
+
+    it("should return period2Amount to the beneficiary and the rest to the owner when the 2nd period ends", async function () {
+      await increaseTime(initParams.cliff + initParams.period * 2);
+      await tokenVesting.connect(owner).revoke();
+      expect(await testToken.balanceOf(owner.address)).to.be.equal(totalBalance - period2Amount);
+      expect(await testToken.balanceOf(beneficiary.address)).to.be.equal(period2Amount);
+    });
+
+    it("should return period2Amount to the beneficiary and the rest to the owner with secondsMargin till the 3rd period ends", async function () {
+      await increaseTime(initParams.cliff + initParams.period * 3 - secondsMargin);
+      await tokenVesting.connect(owner).revoke();
+      expect(await testToken.balanceOf(owner.address)).to.be.equal(totalBalance - period2Amount);
+      expect(await testToken.balanceOf(beneficiary.address)).to.be.equal(period2Amount);
+    });
+
+    it("should return period3Amount to the beneficiary and the rest to the owner when the 3rd period ends", async function () {
+      await increaseTime(initParams.cliff + initParams.period * 3);
+      await tokenVesting.connect(owner).revoke();
+      expect(await testToken.balanceOf(owner.address)).to.be.equal(totalBalance - period3Amount);
+      expect(await testToken.balanceOf(beneficiary.address)).to.be.equal(period3Amount);
+    });
+
+    it("should return period3Amount to the beneficiary and the rest to the owner with secondsMargin till the 4th period ends", async function () {
+      await increaseTime(initParams.cliff + initParams.period * 4 - secondsMargin);
+      await tokenVesting.connect(owner).revoke();
+      expect(await testToken.balanceOf(owner.address)).to.be.equal(totalBalance - period3Amount);
+      expect(await testToken.balanceOf(beneficiary.address)).to.be.equal(period3Amount);
+    });
+
+    it("should return totalBalance to the beneficiary and the rest to the owner when the 4th period ends", async function () {
+      await increaseTime(initParams.cliff + initParams.period * 4);
+      await tokenVesting.connect(owner).revoke();
+      expect(await testToken.balanceOf(owner.address)).to.be.equal(0);
+      expect(await testToken.balanceOf(beneficiary.address)).to.be.equal(totalBalance);
+    });
+  });
+
+  describe("#releasableAmount", function () {
     beforeEach(async function () {
       await initializeTokenVesting();
     });
@@ -95,18 +170,18 @@ describe("TokenVesting", function () {
       expect(await tokenVesting.releasableAmount()).to.be.equal(0);
     });
 
-    it("should return 0 a second before the cliff", async function () {
-      await increaseTime(initParams.cliff - 1);
+    it("should return 0 when secondsMargin remains till the cliff ends", async function () {
+      await increaseTime(initParams.cliff - secondsMargin);
       expect(await tokenVesting.releasableAmount()).to.be.equal(0);
     });
 
-    it("should return cliffAmount when the cliff is reached", async function () {
+    it("should return cliffAmount when the cliff ends", async function () {
       await increaseTime(initParams.cliff);
       expect(await tokenVesting.releasableAmount()).to.be.equal(cliffAmount);
     });
 
-    it("should return cliffAmount when 1 second remains till the 1st period ends", async function () {
-      await increaseTime(initParams.cliff + initParams.period - 1);
+    it("should return cliffAmount when secondsMargin remains till the 1st period ends", async function () {
+      await increaseTime(initParams.cliff + initParams.period- secondsMargin);
       expect(await tokenVesting.releasableAmount()).to.be.equal(cliffAmount);
     });
 
@@ -115,8 +190,8 @@ describe("TokenVesting", function () {
       expect(await tokenVesting.releasableAmount()).to.be.equal(period1Amount);
     });
 
-    it("should return period1Amount when 1 second remains till the 2nd period ends", async function () {
-      await increaseTime(initParams.cliff + initParams.period * 2 - 1);
+    it("should return period1Amount when secondsMargin remains till the 2nd period ends", async function () {
+      await increaseTime(initParams.cliff + initParams.period * 2- secondsMargin);
       expect(await tokenVesting.releasableAmount()).to.be.equal(period1Amount);
     });
 
@@ -125,8 +200,8 @@ describe("TokenVesting", function () {
       expect(await tokenVesting.releasableAmount()).to.be.equal(period2Amount);
     });
 
-    it("should return period2Amount when 1 second remains till the 3nd period ends", async function () {
-      await increaseTime(initParams.cliff + initParams.period * 3 - 1);
+    it("should return period2Amount when secondsMargin remains till the 3nd period ends", async function () {
+      await increaseTime(initParams.cliff + initParams.period * 3- secondsMargin);
       expect(await tokenVesting.releasableAmount()).to.be.equal(period2Amount);
     });
 
@@ -135,8 +210,8 @@ describe("TokenVesting", function () {
       expect(await tokenVesting.releasableAmount()).to.be.equal(period3Amount);
     });
 
-    it("should return period3Amount when 1 second remains till the 4th period ends", async function () {
-      await increaseTime(initParams.cliff + initParams.period * 4 - 1);
+    it("should return period3Amount when secondsMargin remains till the 4th period ends", async function () {
+      await increaseTime(initParams.cliff + initParams.period * 4- secondsMargin);
       expect(await tokenVesting.releasableAmount()).to.be.equal(period3Amount);
     });
 
