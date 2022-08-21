@@ -2,13 +2,12 @@ const { expect } = require("chai");
 const { ethers, network } = require("hardhat");
 
 async function getPendingBlockTimestamp() {
-  const args = ["pending", false];
-  const block = await network.provider.send("eth_getBlockByNumber", args);
-  return block.timestamp;
+  const { timestamp } = await network.provider.send("eth_getBlockByNumber", ["pending", false]);
+  return timestamp;
 }
 
 async function increaseTime(seconds) {
-  await network.provider.send("evm_increaseTime", [seconds]);
+  await network.provider.send("evm_increaseTime", [seconds - 1]);
   await network.provider.send("evm_mine");
 }
 
@@ -60,7 +59,7 @@ describe("TokenVesting", function () {
       duration: 400,
       revokable: true,
       token: testToken.address,
-      period: 50,
+      period: 75,
     };
   });
 
@@ -68,7 +67,7 @@ describe("TokenVesting", function () {
     it("should set the period variable", async function () {
       expect(await tokenVesting.period()).to.be.equal(0);
       await initializeTokenVesting();
-      expect(await tokenVesting.period()).to.be.equal(50);
+      expect(await tokenVesting.period()).to.be.equal(initParams.period);
     });
 
     it("should allow period to be equal to duration - cliff", async function () {
@@ -83,6 +82,11 @@ describe("TokenVesting", function () {
   });
 
   describe("#releasableAmount", function () {
+    const cliffAmount = totalBalance * 0.25;
+    const period1Amount = 437500;
+    const period2Amount = 625000;
+    const period3Amount = 812500;
+
     beforeEach(async function () {
       await initializeTokenVesting();
     });
@@ -91,64 +95,55 @@ describe("TokenVesting", function () {
       expect(await tokenVesting.releasableAmount()).to.be.equal(0);
     });
 
-    it("should return 250000 when the cliff is reached", async function () {
-      await increaseTime(initParams.cliff);
-      expect(await tokenVesting.releasableAmount()).to.be.equal(250000);
+    it("should return 0 a second before the cliff", async function () {
+      await increaseTime(initParams.cliff - 1);
+      expect(await tokenVesting.releasableAmount()).to.be.equal(0);
     });
 
-    it("should return totalBalance when the duration timestamp is reached", async function () {
-      await increaseTime(initParams.duration);
+    it("should return cliffAmount when the cliff is reached", async function () {
+      await increaseTime(initParams.cliff);
+      expect(await tokenVesting.releasableAmount()).to.be.equal(cliffAmount);
+    });
+
+    it("should return cliffAmount when 1 second remains till the 1st period ends", async function () {
+      await increaseTime(initParams.cliff + initParams.period - 1);
+      expect(await tokenVesting.releasableAmount()).to.be.equal(cliffAmount);
+    });
+
+    it("should return period1Amount when the 1st period ends", async function () {
+      await increaseTime(initParams.cliff + initParams.period);
+      expect(await tokenVesting.releasableAmount()).to.be.equal(period1Amount);
+    });
+
+    it("should return period1Amount when 1 second remains till the 2nd period ends", async function () {
+      await increaseTime(initParams.cliff + initParams.period * 2 - 1);
+      expect(await tokenVesting.releasableAmount()).to.be.equal(period1Amount);
+    });
+
+    it("should return period2Amount when the 2nd period ends", async function () {
+      await increaseTime(initParams.cliff + initParams.period * 2);
+      expect(await tokenVesting.releasableAmount()).to.be.equal(period2Amount);
+    });
+
+    it("should return period2Amount when 1 second remains till the 3nd period ends", async function () {
+      await increaseTime(initParams.cliff + initParams.period * 3 - 1);
+      expect(await tokenVesting.releasableAmount()).to.be.equal(period2Amount);
+    });
+
+    it("should return period3Amount when the 3nd period ends", async function () {
+      await increaseTime(initParams.cliff + initParams.period * 3);
+      expect(await tokenVesting.releasableAmount()).to.be.equal(period3Amount);
+    });
+
+    it("should return period3Amount when 1 second remains till the 4th period ends", async function () {
+      await increaseTime(initParams.cliff + initParams.period * 4 - 1);
+      expect(await tokenVesting.releasableAmount()).to.be.equal(period3Amount);
+    });
+
+    it("should return totalBalance when the 4th period ends", async function () {
+      await increaseTime(initParams.cliff + initParams.period * 4);
       expect(await tokenVesting.releasableAmount()).to.be.equal(totalBalance);
     });
-
-    function testReleasableAfterPeriods(amount, periods) {
-      it(`should return ${
-        amount === totalBalance ? "totalBalance" : amount
-      } when ${periods} periods have passed after the cliff`, async function () {
-        await increaseTime(initParams.cliff + initParams.period * periods);
-        expect(await tokenVesting.releasableAmount()).to.be.equal(amount);
-      });
-    }
-
-    testReleasableAfterPeriods(250000, 0);
-    testReleasableAfterPeriods(250000, 0.3);
-    testReleasableAfterPeriods(250000, 0.6);
-    testReleasableAfterPeriods(250000, 0.9);
-
-    testReleasableAfterPeriods(375000, 1);
-    testReleasableAfterPeriods(375000, 1.3);
-    testReleasableAfterPeriods(375000, 1.6);
-    testReleasableAfterPeriods(375000, 1.9);
-
-    testReleasableAfterPeriods(500000, 2);
-    testReleasableAfterPeriods(500000, 2.3);
-    testReleasableAfterPeriods(500000, 2.6);
-    testReleasableAfterPeriods(500000, 2.9);
-
-    testReleasableAfterPeriods(625000, 3);
-    testReleasableAfterPeriods(625000, 3.3);
-    testReleasableAfterPeriods(625000, 3.6);
-    testReleasableAfterPeriods(625000, 3.9);
-
-    testReleasableAfterPeriods(750000, 4);
-    testReleasableAfterPeriods(750000, 4.3);
-    testReleasableAfterPeriods(750000, 4.6);
-    testReleasableAfterPeriods(750000, 4.9);
-
-    testReleasableAfterPeriods(875000, 5);
-    testReleasableAfterPeriods(875000, 5.3);
-    testReleasableAfterPeriods(875000, 5.6);
-    testReleasableAfterPeriods(875000, 5.9);
-
-    testReleasableAfterPeriods(totalBalance, 6);
-    testReleasableAfterPeriods(totalBalance, 6.3);
-    testReleasableAfterPeriods(totalBalance, 6.6);
-    testReleasableAfterPeriods(totalBalance, 6.9);
-
-    testReleasableAfterPeriods(totalBalance, 7);
-    testReleasableAfterPeriods(totalBalance, 7.3);
-    testReleasableAfterPeriods(totalBalance, 7.6);
-    testReleasableAfterPeriods(totalBalance, 7.9);
 
     it("should return totalBalance - 250000 at the end of the vesting if the beneficiary released on cliff", async function () {
       await increaseTime(initParams.cliff);
@@ -156,9 +151,7 @@ describe("TokenVesting", function () {
       await tokenVesting.connect(beneficiary).release();
       expect(await tokenVesting.releasableAmount()).to.be.equal(0);
       await increaseTime(initParams.period * 6);
-      expect(await tokenVesting.releasableAmount()).to.be.equal(
-        totalBalance - 250000
-      );
+      expect(await tokenVesting.releasableAmount()).to.be.equal(totalBalance - 250000);
     });
   });
 });
