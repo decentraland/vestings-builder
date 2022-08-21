@@ -24,8 +24,7 @@
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "contracts:test": "npx hardhat test",
-    "contracts:compile": "npx hardhat compile",
-    "contracts:coverage": "npx hardhat coverage"
+    "contracts:compile": "npx hardhat compile"
   },
   "eslintConfig": {
     "extends": "react-app"
