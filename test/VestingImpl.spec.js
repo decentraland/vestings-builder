@@ -181,7 +181,7 @@ describe("TokenVesting", function () {
     });
 
     it("should return cliffAmount when secondsMargin remains till the 1st period ends", async function () {
-      await increaseTime(initParams.cliff + initParams.period- secondsMargin);
+      await increaseTime(initParams.cliff + initParams.period - secondsMargin);
       expect(await tokenVesting.releasableAmount()).to.be.equal(cliffAmount);
     });
 
@@ -191,7 +191,7 @@ describe("TokenVesting", function () {
     });
 
     it("should return period1Amount when secondsMargin remains till the 2nd period ends", async function () {
-      await increaseTime(initParams.cliff + initParams.period * 2- secondsMargin);
+      await increaseTime(initParams.cliff + initParams.period * 2 - secondsMargin);
       expect(await tokenVesting.releasableAmount()).to.be.equal(period1Amount);
     });
 
@@ -201,7 +201,7 @@ describe("TokenVesting", function () {
     });
 
     it("should return period2Amount when secondsMargin remains till the 3nd period ends", async function () {
-      await increaseTime(initParams.cliff + initParams.period * 3- secondsMargin);
+      await increaseTime(initParams.cliff + initParams.period * 3 - secondsMargin);
       expect(await tokenVesting.releasableAmount()).to.be.equal(period2Amount);
     });
 
@@ -211,7 +211,7 @@ describe("TokenVesting", function () {
     });
 
     it("should return period3Amount when secondsMargin remains till the 4th period ends", async function () {
-      await increaseTime(initParams.cliff + initParams.period * 4- secondsMargin);
+      await increaseTime(initParams.cliff + initParams.period * 4 - secondsMargin);
       expect(await tokenVesting.releasableAmount()).to.be.equal(period3Amount);
     });
 
