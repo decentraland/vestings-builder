@@ -158,15 +158,15 @@ contract TokenVesting is Ownable {
     require(_cliff <= _duration);
     require(_period <= _duration.sub(_cliff));
 
-    initialized               = true;
-    owner                     = _owner;
-    beneficiary               = _beneficiary;
-    start                     = _start;
-    cliff                     = _start.add(_cliff);
-    duration                  = _duration;
-    revocable                 = _revocable;
-    token                     = ERC20(_token);
-    period                    = _period;
+    initialized = true;
+    owner       = _owner;
+    beneficiary = _beneficiary;
+    start       = _start;
+    cliff       = _start.add(_cliff);
+    duration    = _duration;
+    revocable   = _revocable;
+    token       = ERC20(_token);
+    period      = _period;
   }
 
   /**
