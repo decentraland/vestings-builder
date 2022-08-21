@@ -145,13 +145,40 @@ describe("TokenVesting", function () {
       expect(await tokenVesting.releasableAmount()).to.be.equal(totalBalance);
     });
 
-    it("should return totalBalance - 250000 at the end of the vesting if the beneficiary released on cliff", async function () {
+    it("should return totalBalance - cliffAmount at the end of the vesting if the beneficiary released on cliff", async function () {
       await increaseTime(initParams.cliff);
-      expect(await tokenVesting.releasableAmount()).to.be.equal(250000);
+      expect(await tokenVesting.releasableAmount()).to.be.equal(cliffAmount);
       await tokenVesting.connect(beneficiary).release();
       expect(await tokenVesting.releasableAmount()).to.be.equal(0);
-      await increaseTime(initParams.period * 6);
-      expect(await tokenVesting.releasableAmount()).to.be.equal(totalBalance - 250000);
+      await increaseTime(initParams.duration);
+      expect(await tokenVesting.releasableAmount()).to.be.equal(totalBalance - cliffAmount);
+    });
+
+    it("should return totalBalance - period1Amount at the end of the vesting if the beneficiary released when the 1st period ended", async function () {
+      await increaseTime(initParams.cliff + initParams.period);
+      expect(await tokenVesting.releasableAmount()).to.be.equal(period1Amount);
+      await tokenVesting.connect(beneficiary).release();
+      expect(await tokenVesting.releasableAmount()).to.be.equal(0);
+      await increaseTime(initParams.duration);
+      expect(await tokenVesting.releasableAmount()).to.be.equal(totalBalance - period1Amount);
+    });
+
+    it("should return totalBalance - period2Amount at the end of the vesting if the beneficiary released when the 2st period ended", async function () {
+      await increaseTime(initParams.cliff + initParams.period * 2);
+      expect(await tokenVesting.releasableAmount()).to.be.equal(period2Amount);
+      await tokenVesting.connect(beneficiary).release();
+      expect(await tokenVesting.releasableAmount()).to.be.equal(0);
+      await increaseTime(initParams.duration);
+      expect(await tokenVesting.releasableAmount()).to.be.equal(totalBalance - period2Amount);
+    });
+
+    it("should return totalBalance - period3Amount at the end of the vesting if the beneficiary released when the 3rd period ended", async function () {
+      await increaseTime(initParams.cliff + initParams.period * 3);
+      expect(await tokenVesting.releasableAmount()).to.be.equal(period3Amount);
+      await tokenVesting.connect(beneficiary).release();
+      expect(await tokenVesting.releasableAmount()).to.be.equal(0);
+      await increaseTime(initParams.duration);
+      expect(await tokenVesting.releasableAmount()).to.be.equal(totalBalance - period3Amount);
     });
   });
 });
