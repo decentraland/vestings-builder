@@ -118,14 +118,17 @@ contract TokenVesting is Ownable {
 
   // beneficiary of tokens after they are released
   address public beneficiary;
+  uint256 public total;
 
-  uint256 public cliff;
   uint256 public start;
-  uint256 public duration;
-  uint256 public period;
+  uint256 public periods;
+  uint256 public periodDuration;
+  uint256 public cliffPeriods;
 
   bool public revocable;
   bool public revoked;
+  uint256 public revokedAmount;
+
   bool public initialized;
 
   uint256 public released;
@@ -134,39 +137,41 @@ contract TokenVesting is Ownable {
 
   /**
    * @dev Creates a vesting contract that vests its balance of any ERC20 token to the
-   * _beneficiary, gradually in a linear fashion until _start + _duration. By then all
-   * of the balance will have vested.
+   * _beneficiary by periods. When all periods have elapsed, all of the balance will have vested.
    * @param _beneficiary address of the beneficiary to whom vested tokens are transferred
-   * @param _cliff duration in seconds of the cliff in which tokens will begin to vest
-   * @param _duration duration in seconds of the period in which the tokens will vest
+   * @param _total Total amount of tokens vested in this contract
+   * @param _start timestamp indicating the start of the vesting
+   * @param _periods Amount of periods the vesting will have
+   * @param _periodDuration Seconds that each period will last
+   * @param _cliffPeriods Amount of periods until the cliff
    * @param _revocable whether the vesting is revocable or not
    * @param _token address of the ERC20 token contract
-   * @param _period duration of a post cliff period
    */
   function initialize(
     address _owner,
     address _beneficiary,
+    uint256 _total,
     uint256 _start,
-    uint256 _cliff,
-    uint256 _duration,
+    uint256 _periods,
+    uint256 _periodDuration,
+    uint256 _cliffPeriods,
     bool    _revocable,
-    address _token,
-    uint256 _period
+    address _token
   ) public {
     require(!initialized);
     require(_beneficiary != 0x0);
-    require(_cliff <= _duration);
-    require(_period <= _duration.sub(_cliff));
+    require(_cliffPeriods <= _periods);
 
-    initialized = true;
-    owner       = _owner;
-    beneficiary = _beneficiary;
-    start       = _start;
-    cliff       = _start.add(_cliff);
-    duration    = _duration;
-    revocable   = _revocable;
-    token       = ERC20(_token);
-    period      = _period;
+    initialized     = true;
+    owner           = _owner;
+    beneficiary     = _beneficiary;
+    total           = _total;
+    start           = _start;
+    periods         = _periods;
+    periodDuration  = _periodDuration;
+    cliffPeriods    = _cliffPeriods;
+    revocable       = _revocable;
+    token           = ERC20(_token);
   }
 
   /**
@@ -190,7 +195,6 @@ contract TokenVesting is Ownable {
    * @notice Transfers vested tokens to beneficiary.
    */
   function release() onlyBeneficiary public {
-    require(now >= cliff);
     _releaseTo(beneficiary);
   }
 
@@ -199,7 +203,6 @@ contract TokenVesting is Ownable {
    * @param target the address to send the tokens to
    */
   function releaseTo(address target) onlyBeneficiary public {
-    require(now >= cliff);
     _releaseTo(target);
   }
 
@@ -208,6 +211,8 @@ contract TokenVesting is Ownable {
    */
   function _releaseTo(address target) internal {
     uint256 unreleased = releasableAmount();
+
+    require(unreleased > 0);
 
     released = released.add(unreleased);
 
@@ -223,13 +228,8 @@ contract TokenVesting is Ownable {
     require(revocable);
     require(!revoked);
 
-    // Release all vested tokens
-    _releaseTo(beneficiary);
-
-    // Send the remainder to the owner
-    token.safeTransfer(owner, token.balanceOf(this));
-
     revoked = true;
+    revokedAmount = total.sub(vestedAmount());
 
     Revoked();
   }
@@ -239,27 +239,20 @@ contract TokenVesting is Ownable {
    * @dev Calculates the amount that has already vested but hasn't been released yet.
    */
   function releasableAmount() public constant returns (uint256) {
-    return vestedAmount().sub(released);
+    return Math.min256(vestedAmount().sub(released).sub(revokedAmount), token.balanceOf(address(this)));
   }
 
   /**
    * @dev Calculates the amount that has already vested.
    */
   function vestedAmount() public constant returns (uint256) {
-    if (now < cliff) {
+    uint256 elapsedPeriods = now.sub(start).div(periodDuration);
+
+    if (elapsedPeriods < cliffPeriods) {
       return 0;
     }
 
-    uint256 totalBalance = token.balanceOf(this).add(released);
-
-    if (now >= start.add(duration) || revoked) {
-      return totalBalance;
-    }
-
-    uint256 timeFromStartToCliff = cliff.sub(start);
-    uint256 timeOfElapsedPeriods = now.sub(cliff).div(period).mul(period);
-
-    return totalBalance.mul(timeFromStartToCliff.add(timeOfElapsedPeriods)).div(duration);
+    return total.div(periods).mul(elapsedPeriods);
   }
 
   /**
