@@ -222,44 +222,82 @@ contract TokenVesting is Ownable {
   }
 
   /**
-   * @notice Allows the owner to revoke the vesting. Tokens already vested are sent to the beneficiary.
+   * @notice Allows the owner to revoke the vesting.
+   * @dev Revoking the vesting will mark unvested tokens as revoked,
+   * making the beneficiary unable to release that amount. The beneficiary 
+   * will still be able to claim any tokens that have already been vested
+   * before the revoke.
    */
   function revoke() onlyOwner public {
-    require(revocable);
-    require(!revoked);
+    // Checks that the vesting is revocable and haven't been revoked yet.
+    require(revocable && !revoked);
 
+    // Marks the vesting as revoked.
     revoked = true;
-    revokedAmount = total.sub(vestedAmount());
+
+    // Tracks the amount of remaining unvested tokens as revoked.
+    revokedAmount = total.sub(vestedAmount()).sub(released);
 
     Revoked();
   }
 
 
   /**
-   * @dev Calculates the amount that has already vested but hasn't been released yet.
+   * @notice Calculates the amount of token the beneficiary can release.
+   * @return The vested amount minus the released amount and the revoked 
+   * amount. Or in the case where the contract does not have enough 
+   * balance to satisfy the first calculation, returns the whole balance 
+   * of of token of the contract.
    */
   function releasableAmount() public constant returns (uint256) {
     return Math.min256(vestedAmount().sub(released).sub(revokedAmount), token.balanceOf(address(this)));
   }
 
   /**
-   * @dev Calculates the amount that has already vested.
+   * @notice Calculates the amount of token that has been vested.
+   * @return The currently vested amount which is determined by how 
+   * many periods have passed since the start of the vesting. It returns
+   * 0 if not enough periods have passed to complete the cliff.
    */
   function vestedAmount() public constant returns (uint256) {
+    // Get how much periods have passed by dividing the time that has passed from start
+    // with the duration of a period.
     uint256 elapsedPeriods = now.sub(start).div(periodDuration);
 
+    // If not enough periods have passed to be out of the cliff, return 0.
     if (elapsedPeriods < cliffPeriods) {
       return 0;
     }
 
+    // Return the current vested amount by dividing the total amount of tokens managed 
+    // by the contract by the currently elapsed periods.
     return total.div(periods).mul(elapsedPeriods);
   }
 
   /**
    * @notice Allow withdrawing any token other than the relevant one
    */
-  function releaseForeignToken(ERC20 _token, uint256 amount) onlyOwner {
+  function releaseForeignToken(ERC20 _token, uint256 amount) onlyOwner public {
     require(_token != token);
     _token.transfer(owner, amount);
+  }
+
+  /**
+   * @notice Allows the owner of the contract to release any tokens deposited 
+   * in the contract beyond the amount defined in total.
+   */
+  function releaseSurplus() onlyOwner public {
+    uint256 balance = token.balanceOf(address(this));
+    uint256 remainingTotal = total.sub(released).sub(revokedAmount);
+
+    // Checks that the balance is higher than the total to be vested.
+    require(balance > remainingTotal);
+
+    // Calculates the difference between the remaining total and the balance of 
+    // the contract to obtain how much has to be released.
+    uint256 diff = balance.sub(remainingTotal);
+
+    // Transfer the surplus to the owner.
+    token.transferFrom(address(this), owner, diff);
   }
 }
