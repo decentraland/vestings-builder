@@ -166,7 +166,11 @@ describe("PeriodicTokenVesting", () => {
   });
 
   describe("release", () => {
+    let preInitSnapshot;
+
     beforeEach(async () => {
+      preInitSnapshot = await helpers.takeSnapshot();
+
       await vesting.initialize(...initParamsList);
     });
 
@@ -210,6 +214,19 @@ describe("PeriodicTokenVesting", () => {
       await expect(vesting.connect(beneficiary).release())
         .to.emit(vesting, "Released")
         .withArgs(beneficiary.address, amountToVest, amountToVest);
+    });
+
+    it("reverts when vesting has not started", async () => {
+      await preInitSnapshot.restore();
+
+      initParams.start = (await helpers.time.latest()) * 2;
+      initParamsList = Object.values(initParams);
+
+      await vesting.initialize(...initParamsList);
+
+      await expect(vesting.connect(beneficiary).release()).to.be.revertedWith(
+        "PeriodicTokenVesting#release: NOTHING_TO_RELEASE"
+      );
     });
 
     it("reverts when releasable amount is 0", async () => {
