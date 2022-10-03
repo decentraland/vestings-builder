@@ -172,7 +172,7 @@ contract PeriodicTokenVesting is OwnableUpgradeable {
         );
     }
 
-    function _setBeneficiary(address _newBeneficiary) internal {
+    function _setBeneficiary(address _newBeneficiary) private {
         require(
             _newBeneficiary != address(0),
             "PeriodicTokenVesting#_setBeneficiary: INVALID_BENEFICIARY"
