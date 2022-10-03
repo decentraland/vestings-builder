@@ -113,6 +113,9 @@ contract TokenVesting is Ownable {
   using SafeMath for uint256;
   using SafeERC20 for ERC20;
 
+  event Paused();
+  event Resumed(uint256 delay);
+
   event Released(uint256 amount);
   event Revoked();
 
@@ -122,6 +125,10 @@ contract TokenVesting is Ownable {
   uint256 public cliff;
   uint256 public start;
   uint256 public duration;
+
+  bool public pausable;
+  uint256 public paused;
+  uint256 public delayed;
 
   bool public revocable;
   bool public revoked;
@@ -138,6 +145,7 @@ contract TokenVesting is Ownable {
    * @param _beneficiary address of the beneficiary to whom vested tokens are transferred
    * @param _cliff duration in seconds of the cliff in which tokens will begin to vest
    * @param _duration duration in seconds of the period in which the tokens will vest
+   * @param _pausable whether the vesting is pausable or not
    * @param _revocable whether the vesting is revocable or not
    * @param _token address of the ERC20 token contract
    */
@@ -147,6 +155,7 @@ contract TokenVesting is Ownable {
     uint256 _start,
     uint256 _cliff,
     uint256 _duration,
+    bool    _pausable,
     bool    _revocable,
     address _token
   ) public {
@@ -160,6 +169,7 @@ contract TokenVesting is Ownable {
     start       = _start;
     cliff       = _start.add(_cliff);
     duration    = _duration;
+    pausable    = _pausable;
     revocable   = _revocable;
     token       = ERC20(_token);
   }
@@ -212,6 +222,44 @@ contract TokenVesting is Ownable {
   }
 
   /**
+   * @notice Allows the owner to pause the vesting.
+   */
+  function pause() onlyOwner public {
+    require(pausable);
+    require(paused == 0);
+
+    paused = now;
+
+    Paused();
+  }
+
+  /**
+   * @notice Allows the owner to resume the vesting without delay.
+   */
+  function unpause() onlyOwner public {
+    require(paused > 0);
+
+    paused = 0;
+
+    Resumed(0);
+  }
+
+  /**
+   * @notice Allows the owner to resume the vesting with delay.
+   */
+  function resume() onlyOwner public {
+    require(paused > 0);
+
+    uint256 delay = now - paused;
+
+    delayed = delayed.add(delay);
+
+    paused = 0;
+
+    Resumed(delay);
+  }
+
+  /**
    * @notice Allows the owner to revoke the vesting. Tokens already vested are sent to the beneficiary.
    */
   function revoke() onlyOwner public {
@@ -244,12 +292,14 @@ contract TokenVesting is Ownable {
     uint256 currentBalance = token.balanceOf(this);
     uint256 totalBalance = currentBalance.add(released);
 
-    if (now < cliff) {
+    uint256 time = paused > 0 ? paused : now.sub(delayed);
+
+    if (time < cliff) {
       return 0;
-    } else if (now >= start.add(duration) || revoked) {
+    } else if (time >= start.add(duration) || revoked) {
       return totalBalance;
     } else {
-      return totalBalance.mul(now.sub(start)).div(duration);
+      return totalBalance.mul(time.sub(start)).div(duration);
     }
   }
 
