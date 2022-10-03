@@ -128,7 +128,7 @@ describe("PeriodicTokenVesting", () => {
     it("should emit a BeneficiaryUpdated event", async () => {
       await expect(vesting.connect(beneficiary).setBeneficiary(extra.address))
         .to.emit(vesting, "BeneficiaryUpdated")
-        .withArgs(extra.address, beneficiary.address);
+        .withArgs(beneficiary.address, extra.address);
     });
 
     it("reverts when sender is not the current beneficiary", async () => {
