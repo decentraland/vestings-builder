@@ -6,6 +6,7 @@
     "@ethersproject/contracts": "^5.0.3",
     "@ethersproject/providers": "^5.0.6",
     "@ethersproject/random": "^5.0.3",
+    "@nomicfoundation/hardhat-network-helpers": "^1.0.6",
     "@nomicfoundation/hardhat-toolbox": "^2.0.0",
     "@openzeppelin/contracts": "^4.7.3",
     "@openzeppelin/contracts-upgradeable": "^4.7.3",
