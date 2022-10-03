@@ -12,10 +12,17 @@ contract PeriodicTokenVesting is OwnableUpgradeable {
     uint256 private start;
     uint256 private periodDuration;
     uint256[] private vestedPerPeriod;
+    uint256 private released;
 
     event BeneficiaryUpdated(
-        address indexed _newBeneficiary,
-        address indexed _sender
+        address indexed _sender,
+        address indexed _newBeneficiary
+    );
+
+    event Released(
+        address indexed _sender,
+        uint256 _currentlyReleased,
+        uint256 _totalReleased
     );
 
     modifier onlyBeneficiary() {
@@ -105,6 +112,29 @@ contract PeriodicTokenVesting is OwnableUpgradeable {
         _setBeneficiary(_newBeneficiary);
     }
 
+    function release() external onlyBeneficiary {
+        uint256 vested = _getVested();
+
+        require(vested > 0, "PeriodicTokenVesting#release: NO_VESTED_TOKENS");
+
+        uint256 net = vested - released;
+        uint256 contractBalance = token.balanceOf(address(this));
+
+        require(
+            net <= contractBalance,
+            "PeriodicTokenVesting#release: INSUFFICIENT_BALANCE"
+        );
+
+        released += net;
+
+        emit Released(_msgSender(), net, released);
+
+        require(
+            token.transfer(beneficiary, vested),
+            "PeriodicTokenVesting#release: FAILED_TO_TRANSFER"
+        );
+    }
+
     function _setBeneficiary(address _newBeneficiary) internal {
         require(
             _newBeneficiary != address(0),
@@ -113,6 +143,28 @@ contract PeriodicTokenVesting is OwnableUpgradeable {
 
         beneficiary = _newBeneficiary;
 
-        emit BeneficiaryUpdated(_newBeneficiary, _msgSender());
+        emit BeneficiaryUpdated(_msgSender(), _newBeneficiary);
+    }
+
+    function _getVested() private view returns (uint256) {
+        if (block.timestamp < start) {
+            return 0;
+        }
+
+        uint256 delta = block.timestamp - start;
+        uint256 elapsedPeriods = delta / periodDuration;
+        uint256 vestedPerPeriodLength = vestedPerPeriod.length;
+
+        if (elapsedPeriods >= vestedPerPeriodLength) {
+            elapsedPeriods = vestedPerPeriodLength;
+        }
+
+        uint256 vested;
+
+        for (uint i = 0; i < elapsedPeriods; i++) {
+            vested += vestedPerPeriod[i];
+        }
+
+        return vested;
     }
 }
