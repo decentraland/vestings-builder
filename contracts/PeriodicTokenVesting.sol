@@ -165,7 +165,7 @@ contract PeriodicTokenVesting is OwnableUpgradeable {
         uint256 elapsedPeriods = delta / periodDuration;
         uint256 vestedPerPeriodLength = vestedPerPeriod.length;
 
-        if (elapsedPeriods >= vestedPerPeriodLength) {
+        if (elapsedPeriods > vestedPerPeriodLength) {
             elapsedPeriods = vestedPerPeriodLength;
         }
 
