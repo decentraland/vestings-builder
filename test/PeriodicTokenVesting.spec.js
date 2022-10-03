@@ -73,6 +73,7 @@ describe("PeriodicTokenVesting", () => {
 
     it("reverts when initializing twice", async () => {
       await vesting.initialize(...initParamsList);
+
       await expect(vesting.initialize(...initParamsList)).to.be.revertedWith(
         "Initializable: contract is already initialized"
       );
@@ -81,6 +82,31 @@ describe("PeriodicTokenVesting", () => {
     it("reverts when initializing the implementation", async () => {
       await expect(vestingImpl.initialize(...initParamsList)).to.be.revertedWith(
         "Initializable: contract is already initialized"
+      );
+    });
+
+    it("reverts when owner is 0x0", async () => {
+      initParams.owner = ethers.constants.AddressZero;
+      initParamsList = Object.values(initParams);
+
+      await expect(vesting.initialize(...initParamsList)).to.be.revertedWith("Ownable: new owner is the zero address");
+    });
+
+    it("reverts when beneficiary is 0x0", async () => {
+      initParams.beneficiary = ethers.constants.AddressZero;
+      initParamsList = Object.values(initParams);
+
+      await expect(vesting.initialize(...initParamsList)).to.be.revertedWith(
+        "PeriodicTokenVesting#initialize: INVALID_BENEFICIARY"
+      );
+    });
+
+    it("reverts when token is 0x0", async () => {
+      initParams.token = ethers.constants.AddressZero;
+      initParamsList = Object.values(initParams);
+
+      await expect(vesting.initialize(...initParamsList)).to.be.revertedWith(
+        "PeriodicTokenVesting#initialize: INVALID_TOKEN"
       );
     });
   });
