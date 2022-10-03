@@ -117,6 +117,8 @@ contract PeriodicTokenVesting is OwnableUpgradeable {
         _setBeneficiary(_newBeneficiary);
     }
 
+    /// @notice Transfer vested tokens to the beneficiary.
+    /// @dev Only the current beneficiary can call this function.
     function release() external onlyBeneficiary {
         uint256 vested = _getVested();
         uint256 releasable = vested - released;
