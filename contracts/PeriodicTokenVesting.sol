@@ -105,6 +105,11 @@ contract PeriodicTokenVesting is OwnableUpgradeable {
         return vestedPerPeriod;
     }
 
+    /// @notice Get the amount of tokens released.
+    function getReleased() external view returns (uint256) {
+        return released;
+    }
+
     /// @notice Set a new Beneficiary.
     /// @dev Only the current beneficiary can call this function.
     /// @param _newBeneficiary The new beneficiary of the vested tokens.
@@ -114,23 +119,26 @@ contract PeriodicTokenVesting is OwnableUpgradeable {
 
     function release() external onlyBeneficiary {
         uint256 vested = _getVested();
+        uint256 releasable = vested - released;
 
-        require(vested > 0, "PeriodicTokenVesting#release: NO_VESTED_TOKENS");
+        require(
+            releasable > 0,
+            "PeriodicTokenVesting#release: NOTHING_TO_RELEASE"
+        );
 
-        uint256 net = vested - released;
         uint256 contractBalance = token.balanceOf(address(this));
 
         require(
-            net <= contractBalance,
-            "PeriodicTokenVesting#release: INSUFFICIENT_BALANCE"
+            releasable <= contractBalance,
+            "PeriodicTokenVesting#release: INSUFFICIENT_CONTRACT_BALANCE"
         );
 
-        released += net;
+        released += releasable;
 
-        emit Released(_msgSender(), net, released);
+        emit Released(_msgSender(), releasable, released);
 
         require(
-            token.transfer(beneficiary, vested),
+            token.transfer(beneficiary, releasable),
             "PeriodicTokenVesting#release: FAILED_TO_TRANSFER"
         );
     }
