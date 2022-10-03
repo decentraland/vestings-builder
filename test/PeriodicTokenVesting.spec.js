@@ -16,6 +16,8 @@ describe("PeriodicTokenVesting", () => {
   let token;
 
   // Params
+  let vestedPerPeriod;
+  let amountToVest;
   let initParams;
   let initParamsList;
 
@@ -34,6 +36,27 @@ describe("PeriodicTokenVesting", () => {
 
     vesting = PeriodicTokenVesting.attach(proxy.address);
 
+    vestedPerPeriod = [
+      ethers.constants.Zero,
+      ethers.constants.Zero,
+      ethers.constants.Zero,
+      ethers.utils.parseEther("2500"),
+      ethers.utils.parseEther("625"),
+      ethers.utils.parseEther("625"),
+      ethers.utils.parseEther("625"),
+      ethers.utils.parseEther("625"),
+      ethers.utils.parseEther("625"),
+      ethers.utils.parseEther("625"),
+      ethers.utils.parseEther("625"),
+      ethers.utils.parseEther("625"),
+      ethers.utils.parseEther("625"),
+      ethers.utils.parseEther("625"),
+      ethers.utils.parseEther("625"),
+      ethers.utils.parseEther("625"),
+    ];
+
+    amountToVest = vestedPerPeriod.reduce((acc, next) => acc.add(next), ethers.constants.Zero);
+
     initParams = {
       owner: owner.address,
       beneficiary: beneficiary.address,
@@ -41,7 +64,7 @@ describe("PeriodicTokenVesting", () => {
       revocable: true,
       start: await helpers.time.latest(),
       periodDuration: 7889400,
-      vestedPerPeriod: [0, 0, 0, 2500, 625, 625, 625, 625, 625, 625, 625, 625, 625, 625, 625, 625],
+      vestedPerPeriod,
     };
 
     initParamsList = Object.values(initParams);
@@ -67,9 +90,7 @@ describe("PeriodicTokenVesting", () => {
       expect(await vesting.getIsRevocable()).to.equal(initParams.revocable);
       expect(await vesting.getStart()).to.equal(initParams.start);
       expect(await vesting.getPeriodDuration()).to.equal(initParams.periodDuration);
-      expect((await vesting.getVestedPerPeriod()).map((x) => Number(x))).to.have.same.members(
-        initParams.vestedPerPeriod
-      );
+      expect(await vesting.getVestedPerPeriod()).to.have.same.deep.members(vestedPerPeriod);
     });
 
     it("reverts when initializing twice", async () => {
@@ -128,7 +149,7 @@ describe("PeriodicTokenVesting", () => {
     it("should emit a BeneficiaryUpdated event", async () => {
       await expect(vesting.connect(beneficiary).setBeneficiary(extra.address))
         .to.emit(vesting, "BeneficiaryUpdated")
-        .withArgs(extra.address, beneficiary.address);
+        .withArgs(beneficiary.address, extra.address);
     });
 
     it("reverts when sender is not the current beneficiary", async () => {
@@ -140,6 +161,93 @@ describe("PeriodicTokenVesting", () => {
     it("reverts when beneficiary is 0x0", async () => {
       await expect(vesting.connect(beneficiary).setBeneficiary(ethers.constants.AddressZero)).to.be.revertedWith(
         "PeriodicTokenVesting#_setBeneficiary: INVALID_BENEFICIARY"
+      );
+    });
+  });
+
+  describe("release", () => {
+    let preInitSnapshot;
+
+    beforeEach(async () => {
+      preInitSnapshot = await helpers.takeSnapshot();
+
+      await vesting.initialize(...initParamsList);
+    });
+
+    it("should release tokens", async () => {
+      await helpers.time.setNextBlockTimestamp(
+        initParams.start + initParams.periodDuration * initParams.vestedPerPeriod.length
+      );
+
+      await token.connect(treasury).transfer(vesting.address, amountToVest);
+
+      expect(await token.balanceOf(vesting.address)).to.equal(amountToVest);
+      expect(await token.balanceOf(beneficiary.address)).to.equal(ethers.constants.Zero);
+
+      await vesting.connect(beneficiary).release();
+
+      expect(await token.balanceOf(vesting.address)).to.equal(ethers.constants.Zero);
+      expect(await token.balanceOf(beneficiary.address)).to.equal(amountToVest);
+    });
+
+    it("should update the amount released", async () => {
+      await helpers.time.setNextBlockTimestamp(
+        initParams.start + initParams.periodDuration * initParams.vestedPerPeriod.length
+      );
+
+      await token.connect(treasury).transfer(vesting.address, amountToVest);
+
+      expect(await vesting.getReleased()).to.equal(ethers.constants.Zero);
+
+      await vesting.connect(beneficiary).release();
+
+      expect(await vesting.getReleased()).to.equal(amountToVest);
+    });
+
+    it("should emit a Released event", async () => {
+      await helpers.time.setNextBlockTimestamp(
+        initParams.start + initParams.periodDuration * initParams.vestedPerPeriod.length
+      );
+
+      await token.connect(treasury).transfer(vesting.address, amountToVest);
+
+      await expect(vesting.connect(beneficiary).release())
+        .to.emit(vesting, "Released")
+        .withArgs(beneficiary.address, amountToVest, amountToVest);
+    });
+
+    it("reverts when vesting has not started", async () => {
+      await preInitSnapshot.restore();
+
+      initParams.start = (await helpers.time.latest()) * 2;
+      initParamsList = Object.values(initParams);
+
+      await vesting.initialize(...initParamsList);
+
+      await expect(vesting.connect(beneficiary).release()).to.be.revertedWith(
+        "PeriodicTokenVesting#release: NOTHING_TO_RELEASE"
+      );
+    });
+
+    it("reverts when releasable amount is 0", async () => {
+      await expect(vesting.connect(beneficiary).release()).to.be.revertedWith(
+        "PeriodicTokenVesting#release: NOTHING_TO_RELEASE"
+      );
+    });
+
+    it("reverts when caller is not the beneficiary", async () => {
+      await expect(vesting.connect(extra).release()).to.be.revertedWith(
+        "PeriodicTokenVesting#onlyBeneficiary: NOT_BENEFICIARY"
+      );
+    });
+
+    it("reverts when the contract does not have funds", async () => {
+      await helpers.time.setNextBlockTimestamp(
+        initParams.start + initParams.periodDuration * initParams.vestedPerPeriod.length
+      );
+
+      await expect(vesting.connect(beneficiary).release()).to.be.revertedWith(
+        "PeriodicTokenVesting#release: INSUFFICIENT_CONTRACT_BALANCE"
       );
     });
   });

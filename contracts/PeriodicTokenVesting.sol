@@ -12,10 +12,17 @@ contract PeriodicTokenVesting is OwnableUpgradeable {
     uint256 private start;
     uint256 private periodDuration;
     uint256[] private vestedPerPeriod;
+    uint256 private released;
 
     event BeneficiaryUpdated(
-        address indexed _newBeneficiary,
-        address indexed _sender
+        address indexed _sender,
+        address indexed _newBeneficiary
+    );
+
+    event Released(
+        address indexed _sender,
+        uint256 _currentlyReleased,
+        uint256 _totalReleased
     );
 
     modifier onlyBeneficiary() {
@@ -98,6 +105,39 @@ contract PeriodicTokenVesting is OwnableUpgradeable {
         return vestedPerPeriod;
     }
 
+    /// @notice Get the amount of tokens released.
+    function getReleased() external view returns (uint256) {
+        return released;
+    }
+
+    /// @notice Get the amount of releasable tokens.
+    function getReleasable() public view returns (uint256) {
+        return getVested() - released;
+    }
+
+    /// @notice Get the amount of tokens currently vested.
+    function getVested() public view returns (uint256) {
+        if (block.timestamp < start) {
+            return 0;
+        }
+
+        uint256 delta = block.timestamp - start;
+        uint256 elapsedPeriods = delta / periodDuration;
+        uint256 vestedPerPeriodLength = vestedPerPeriod.length;
+
+        if (elapsedPeriods > vestedPerPeriodLength) {
+            elapsedPeriods = vestedPerPeriodLength;
+        }
+
+        uint256 vested;
+
+        for (uint i = 0; i < elapsedPeriods; i++) {
+            vested += vestedPerPeriod[i];
+        }
+
+        return vested;
+    }
+
     /// @notice Set a new Beneficiary.
     /// @dev Only the current beneficiary can call this function.
     /// @param _newBeneficiary The new beneficiary of the vested tokens.
@@ -105,7 +145,34 @@ contract PeriodicTokenVesting is OwnableUpgradeable {
         _setBeneficiary(_newBeneficiary);
     }
 
-    function _setBeneficiary(address _newBeneficiary) internal {
+    /// @notice Transfer vested tokens to the beneficiary.
+    /// @dev Only the current beneficiary can call this function.
+    function release() external onlyBeneficiary {
+        uint256 releasable = getReleasable();
+
+        require(
+            releasable > 0,
+            "PeriodicTokenVesting#release: NOTHING_TO_RELEASE"
+        );
+
+        uint256 contractBalance = token.balanceOf(address(this));
+
+        require(
+            releasable <= contractBalance,
+            "PeriodicTokenVesting#release: INSUFFICIENT_CONTRACT_BALANCE"
+        );
+
+        released += releasable;
+
+        emit Released(_msgSender(), releasable, released);
+
+        require(
+            token.transfer(beneficiary, releasable),
+            "PeriodicTokenVesting#release: FAILED_TO_TRANSFER"
+        );
+    }
+
+    function _setBeneficiary(address _newBeneficiary) private {
         require(
             _newBeneficiary != address(0),
             "PeriodicTokenVesting#_setBeneficiary: INVALID_BENEFICIARY"
@@ -113,6 +180,6 @@ contract PeriodicTokenVesting is OwnableUpgradeable {
 
         beneficiary = _newBeneficiary;
 
-        emit BeneficiaryUpdated(_newBeneficiary, _msgSender());
+        emit BeneficiaryUpdated(_msgSender(), _newBeneficiary);
     }
 }
