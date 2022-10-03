@@ -13,6 +13,19 @@ contract PeriodicTokenVesting is OwnableUpgradeable {
     uint256 private periodDuration;
     uint256[] private vestedPerPeriod;
 
+    event BeneficiaryUpdated(
+        address indexed _newBeneficiary,
+        address indexed _sender
+    );
+
+    modifier onlyBeneficiary() {
+        require(
+            _msgSender() == beneficiary,
+            "PeriodicTokenVesting#onlyBeneficiary: NOT_BENEFICIARY"
+        );
+        _;
+    }
+
     constructor() {
         _disableInitializers();
     }
@@ -36,11 +49,6 @@ contract PeriodicTokenVesting is OwnableUpgradeable {
         uint256[] calldata _vestedPerPeriod
     ) external initializer {
         require(
-            _beneficiary != address(0),
-            "PeriodicTokenVesting#initialize: INVALID_BENEFICIARY"
-        );
-
-        require(
             _token != address(0),
             "PeriodicTokenVesting#initialize: INVALID_TOKEN"
         );
@@ -52,7 +60,7 @@ contract PeriodicTokenVesting is OwnableUpgradeable {
         transferOwnership(_owner);
 
         // Set the rest of the variables
-        beneficiary = _beneficiary;
+        _setBeneficiary(_beneficiary);
         token = IERC20(_token);
         isRevocable = _isRevocable;
         start = _start;
@@ -88,5 +96,23 @@ contract PeriodicTokenVesting is OwnableUpgradeable {
     /// @notice Get the amount of tokens vested per period.
     function getVestedPerPeriod() external view returns (uint256[] memory) {
         return vestedPerPeriod;
+    }
+
+    /// @notice Set a new Beneficiary.
+    /// @dev Only the current beneficiary can call this function.
+    /// @param _newBeneficiary The new beneficiary of the vested tokens.
+    function setBeneficiary(address _newBeneficiary) external onlyBeneficiary {
+        _setBeneficiary(_newBeneficiary);
+    }
+
+    function _setBeneficiary(address _newBeneficiary) internal {
+        require(
+            _newBeneficiary != address(0),
+            "PeriodicTokenVesting#_setBeneficiary: INVALID_BENEFICIARY"
+        );
+
+        beneficiary = _newBeneficiary;
+
+        emit BeneficiaryUpdated(_newBeneficiary, _msgSender());
     }
 }
