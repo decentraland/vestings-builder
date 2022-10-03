@@ -251,4 +251,42 @@ describe("PeriodicTokenVesting", () => {
       );
     });
   });
+
+  describe("revoke", () => {
+    let preInitSnapshot;
+
+    beforeEach(async () => {
+      preInitSnapshot = await helpers.takeSnapshot();
+
+      await vesting.initialize(...initParamsList);
+    });
+
+    it("should update the revoked variable", async () => {
+      expect(await vesting.getRevokedTimestamp()).to.equal(0);
+
+      await vesting.connect(owner).revoke();
+
+      expect(await vesting.getRevokedTimestamp()).to.equal(await helpers.time.latest());
+    });
+
+    it("reverts when caller is not the owner", async () => {
+      await expect(vesting.connect(extra).revoke()).to.be.revertedWith("Ownable: caller is not the owner");
+    });
+
+    it("reverts when contract is not revocable", async () => {
+      await preInitSnapshot.restore();
+
+      initParams.revocable = false;
+      initParamsList = Object.values(initParams);
+
+      await vesting.initialize(...initParamsList);
+
+      await expect(vesting.connect(owner).revoke()).to.be.revertedWith("PeriodicTokenVesting#revoke: NON_REVOCABLE");
+    });
+
+    it("reverts when contract has been already revoked", async () => {
+      await vesting.connect(owner).revoke();
+      await expect(vesting.connect(owner).revoke()).to.be.revertedWith("PeriodicTokenVesting#revoke: ALREADY_REVOKED");
+    });
+  });
 });
