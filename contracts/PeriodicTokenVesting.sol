@@ -17,7 +17,7 @@ contract PeriodicTokenVesting is OwnableUpgradeable {
 
     event BeneficiaryUpdated(address indexed _to);
     event Revoked();
-    event Released(uint256 _amount);
+    event Released(address indexed _receiver, uint256 _amount);
     event ReleasedForeign(IERC20 indexed _token, uint256 _amount);
     event ReleasedSurplus(uint256 _amount);
 
@@ -152,25 +152,13 @@ contract PeriodicTokenVesting is OwnableUpgradeable {
 
     /// @notice Transfer vested tokens to the beneficiary.
     function release() external onlyBeneficiary {
-        uint256 releasable = getReleasable();
+        _release(beneficiary);
+    }
 
-        require(
-            releasable > 0,
-            "PeriodicTokenVesting#release: NOTHING_TO_RELEASE"
-        );
-
-        uint256 contractBalance = token.balanceOf(address(this));
-
-        require(
-            releasable <= contractBalance,
-            "PeriodicTokenVesting#release: INSUFFICIENT_CONTRACT_BALANCE"
-        );
-
-        released += releasable;
-
-        emit Released(released);
-
-        token.transfer(beneficiary, releasable);
+    /// @notice Transfer vested tokens to a different address.
+    /// @param _receiver The address to transfer the vested tokens to.
+    function release(address _receiver) external onlyBeneficiary {
+        _release(_receiver);
     }
 
     /// @notice Revokes the vesting.
@@ -234,14 +222,41 @@ contract PeriodicTokenVesting is OwnableUpgradeable {
         token.transfer(owner(), surplus);
     }
 
-    function _setBeneficiary(address _to) private {
+    function _setBeneficiary(address _beneficiary) private {
         require(
-            _to != address(0),
+            _beneficiary != address(0),
             "PeriodicTokenVesting#_setBeneficiary: INVALID_BENEFICIARY"
         );
 
-        beneficiary = _to;
+        beneficiary = _beneficiary;
 
-        emit BeneficiaryUpdated(_to);
+        emit BeneficiaryUpdated(_beneficiary);
+    }
+
+    function _release(address _receiver) private {
+        require(
+            _receiver != address(0),
+            "PeriodicTokenVesting#_release: INVALID_RECEIVER"
+        );
+
+        uint256 releasable = getReleasable();
+
+        require(
+            releasable > 0,
+            "PeriodicTokenVesting#_release: NOTHING_TO_RELEASE"
+        );
+
+        uint256 contractBalance = token.balanceOf(address(this));
+
+        require(
+            releasable <= contractBalance,
+            "PeriodicTokenVesting#_release: INSUFFICIENT_CONTRACT_BALANCE"
+        );
+
+        released += releasable;
+
+        emit Released(_receiver, released);
+
+        token.transfer(_receiver, releasable);
     }
 }
