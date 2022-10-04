@@ -342,7 +342,7 @@ describe("PeriodicTokenVesting", () => {
       expect(await foreignToken.balanceOf(vesting.address)).to.equal(ethers.utils.parseEther("100"));
       expect(await foreignToken.balanceOf(owner.address)).to.equal(ethers.constants.Zero);
 
-      await vesting.connect(owner).releaseForeignToken(foreignToken.address, ethers.utils.parseEther("100"));
+      await vesting.connect(owner).releaseForeignToken(foreignToken.address);
 
       expect(await foreignToken.balanceOf(vesting.address)).to.equal(ethers.constants.Zero);
       expect(await foreignToken.balanceOf(owner.address)).to.equal(ethers.utils.parseEther("100"));
@@ -352,21 +352,30 @@ describe("PeriodicTokenVesting", () => {
       const Token = await ethers.getContractFactory("MockToken");
       const foreignToken = await Token.deploy(ethers.utils.parseEther("100"), vesting.address);
 
-      await expect(vesting.connect(owner).releaseForeignToken(foreignToken.address, ethers.utils.parseEther("100")))
+      await expect(vesting.connect(owner).releaseForeignToken(foreignToken.address))
         .to.emit(vesting, "ReleasedForeign")
         .withArgs(foreignToken.address, ethers.utils.parseEther("100"));
     });
 
     it("reverts when trying to release the token defined in the contract", async () => {
-      await expect(
-        vesting.connect(owner).releaseForeignToken(token.address, ethers.utils.parseEther("100"))
-      ).to.be.revertedWith("PeriodicTokenVesting#releaseForeignToken: INVALID_TOKEN");
+      await expect(vesting.connect(owner).releaseForeignToken(token.address)).to.be.revertedWith(
+        "PeriodicTokenVesting#releaseForeignToken: INVALID_TOKEN"
+      );
     });
 
     it("reverts when the caller is not the owner", async () => {
-      await expect(
-        vesting.connect(extra).releaseForeignToken(token.address, ethers.utils.parseEther("100"))
-      ).to.be.revertedWith("Ownable: caller is not the owner");
+      await expect(vesting.connect(extra).releaseForeignToken(token.address)).to.be.revertedWith(
+        "Ownable: caller is not the owner"
+      );
+    });
+
+    it("reverts when there is nothing to release", async () => {
+      const Token = await ethers.getContractFactory("MockToken");
+      const foreignToken = await Token.deploy(ethers.utils.parseEther("100"), treasury.address);
+
+      await expect(vesting.connect(owner).releaseForeignToken(foreignToken.address)).to.be.revertedWith(
+        "PeriodicTokenVesting#releaseForeignToken: NOTHING_TO_RELEASE"
+      );
     });
   });
 

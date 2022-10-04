@@ -186,21 +186,24 @@ contract PeriodicTokenVesting is OwnableUpgradeable {
         emit Revoked();
     }
 
-    /// @notice Transfer other tokens owned by the contract to the owner.
-    /// @param _token The token to transfer.
-    /// @param _amount The amount of tokens to transfer.
-    function releaseForeignToken(IERC20 _token, uint256 _amount)
-        external
-        onlyOwner
-    {
+    /// @notice Transfer foreign tokens owned by the contract to the owner.
+    /// @param _token The foreign token to release.
+    function releaseForeignToken(IERC20 _token) external onlyOwner {
         require(
             _token != token,
             "PeriodicTokenVesting#releaseForeignToken: INVALID_TOKEN"
         );
 
-        emit ReleasedForeign(_token, _amount);
+        uint256 amount = _token.balanceOf(address(this));
 
-        _token.transfer(owner(), _amount);
+        require(
+            amount > 0,
+            "PeriodicTokenVesting#releaseForeignToken: NOTHING_TO_RELEASE"
+        );
+
+        emit ReleasedForeign(_token, amount);
+
+        _token.transfer(owner(), amount);
     }
 
     /// @notice Transfer any surplus tokens from the contract to the owner.
