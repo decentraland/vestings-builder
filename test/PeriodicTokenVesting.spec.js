@@ -346,6 +346,15 @@ describe("PeriodicTokenVesting", () => {
       expect(await foreignToken.balanceOf(owner.address)).to.equal(ethers.utils.parseEther("100"));
     });
 
+    it("should emit a ReleasedForeign event", async () => {
+      const Token = await ethers.getContractFactory("MockToken");
+      const foreignToken = await Token.deploy(ethers.utils.parseEther("100"), vesting.address);
+
+      await expect(vesting.connect(owner).releaseForeignToken(foreignToken.address, ethers.utils.parseEther("100")))
+        .to.emit(vesting, "ReleasedForeign")
+        .withArgs(owner.address, foreignToken.address, ethers.utils.parseEther("100"));
+    });
+
     it("reverts when trying to release the token defined in the contract", async () => {
       await expect(
         vesting.connect(owner).releaseForeignToken(token.address, ethers.utils.parseEther("100"))

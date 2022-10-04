@@ -26,6 +26,12 @@ contract PeriodicTokenVesting is OwnableUpgradeable {
         uint256 _totalReleased
     );
 
+    event ReleasedForeign(
+        address indexed _sender,
+        IERC20 _token,
+        uint256 _amount
+    );
+
     event Revoked(address indexed _sender);
 
     modifier onlyBeneficiary() {
@@ -203,6 +209,8 @@ contract PeriodicTokenVesting is OwnableUpgradeable {
             _token != token,
             "PeriodicTokenVesting#releaseForeignToken: INVALID_TOKEN"
         );
+
+        emit ReleasedForeign(_msgSender(), _token, _amount);
 
         _token.transfer(owner(), _amount);
     }
