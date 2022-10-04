@@ -13,6 +13,7 @@ contract PeriodicTokenVesting is OwnableUpgradeable {
     uint256 private periodDuration;
     uint256[] private vestedPerPeriod;
     uint256 private released;
+    uint256 private revokedTimestamp;
 
     event BeneficiaryUpdated(
         address indexed _sender,
@@ -24,6 +25,8 @@ contract PeriodicTokenVesting is OwnableUpgradeable {
         uint256 _currentlyReleased,
         uint256 _totalReleased
     );
+
+    event Revoked(address indexed _sender);
 
     modifier onlyBeneficiary() {
         require(
@@ -110,6 +113,11 @@ contract PeriodicTokenVesting is OwnableUpgradeable {
         return released;
     }
 
+    /// @notice Get the timestamp when the vesting was revoked.
+    function getRevokedTimestamp() external view returns (uint256) {
+        return revokedTimestamp;
+    }
+
     /// @notice Get the amount of releasable tokens.
     function getReleasable() public view returns (uint256) {
         return getVested() - released;
@@ -117,11 +125,17 @@ contract PeriodicTokenVesting is OwnableUpgradeable {
 
     /// @notice Get the amount of tokens currently vested.
     function getVested() public view returns (uint256) {
-        if (block.timestamp < start) {
+        uint256 timestamp = block.timestamp;
+
+        if (revokedTimestamp != 0) {
+            timestamp = revokedTimestamp;
+        }
+
+        if (timestamp < start) {
             return 0;
         }
 
-        uint256 delta = block.timestamp - start;
+        uint256 delta = timestamp - start;
         uint256 elapsedPeriods = delta / periodDuration;
         uint256 vestedPerPeriodLength = vestedPerPeriod.length;
 
@@ -170,6 +184,18 @@ contract PeriodicTokenVesting is OwnableUpgradeable {
             token.transfer(beneficiary, releasable),
             "PeriodicTokenVesting#release: FAILED_TO_TRANSFER"
         );
+    }
+
+    function revoke() external onlyOwner {
+        require(isRevocable, "PeriodicTokenVesting#revoke: NON_REVOCABLE");
+        require(
+            revokedTimestamp == 0,
+            "PeriodicTokenVesting#revoke: ALREADY_REVOKED"
+        );
+
+        revokedTimestamp = block.timestamp;
+
+        emit Revoked(_msgSender());
     }
 
     function _setBeneficiary(address _newBeneficiary) private {
