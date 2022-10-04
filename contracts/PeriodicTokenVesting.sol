@@ -32,6 +32,8 @@ contract PeriodicTokenVesting is OwnableUpgradeable {
         uint256 _amount
     );
 
+    event ReleasedSurplus(address indexed _sender, uint256 _amount);
+
     event Revoked(address indexed _sender);
 
     modifier onlyBeneficiary() {
@@ -213,6 +215,33 @@ contract PeriodicTokenVesting is OwnableUpgradeable {
         emit ReleasedForeign(_msgSender(), _token, _amount);
 
         _token.transfer(owner(), _amount);
+    }
+
+    function releaseSurplus() external onlyOwner {
+        uint256 nonSurplus;
+
+        if (revokedTimestamp != 0) {
+            nonSurplus = getVested();
+        } else {
+            for (uint i = 0; i < vestedPerPeriod.length; i++) {
+                nonSurplus += vestedPerPeriod[i];
+            }
+        }
+
+        nonSurplus -= released;
+
+        uint256 contractBalance = token.balanceOf(address(this));
+
+        require(
+            contractBalance > nonSurplus,
+            "PeriodicTokenVesting#releaseSurplus: NO_SURPLUS"
+        );
+
+        uint256 surplus = contractBalance - nonSurplus;
+
+        emit ReleasedSurplus(_msgSender(), surplus);
+
+        token.transfer(owner(), surplus);
     }
 
     function _setBeneficiary(address _newBeneficiary) private {
