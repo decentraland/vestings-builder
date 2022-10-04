@@ -307,6 +307,10 @@ describe("PeriodicTokenVesting", () => {
       expect(await vesting.getRevokedTimestamp()).to.equal(await helpers.time.latest());
     });
 
+    it("should emit a Revoked event", async () => {
+      await expect(vesting.connect(owner).revoke()).to.emit(vesting, "Revoked").withArgs(owner.address);
+    });
+
     it("reverts when caller is not the owner", async () => {
       await expect(vesting.connect(extra).revoke()).to.be.revertedWith("Ownable: caller is not the owner");
     });
@@ -397,6 +401,14 @@ describe("PeriodicTokenVesting", () => {
 
       expect(await token.balanceOf(vesting.address)).to.equal(ethers.constants.Zero);
       expect(await token.balanceOf(owner.address)).to.equal(totalToVest.mul(2));
+    });
+
+    it("should emit a ReleasedSurplus event", async () => {
+      await token.connect(treasury).transfer(vesting.address, totalToVest.mul(2));
+
+      await expect(vesting.connect(owner).releaseSurplus())
+        .to.emit(vesting, "ReleasedSurplus")
+        .withArgs(owner.address, totalToVest);
     });
 
     it("reverts when there is no surplus", async () => {
