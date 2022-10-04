@@ -327,4 +327,44 @@ describe("PeriodicTokenVesting", () => {
       await expect(vesting.connect(owner).revoke()).to.be.revertedWith("PeriodicTokenVesting#revoke: ALREADY_REVOKED");
     });
   });
+
+  describe("releaseForeignToken", () => {
+    beforeEach(async () => {
+      await vesting.initialize(...initParamsList);
+    });
+
+    it("releases the foreign token provided", async () => {
+      const Token = await ethers.getContractFactory("MockToken");
+      const foreignToken = await Token.deploy(ethers.utils.parseEther("100"), vesting.address);
+
+      expect(await foreignToken.balanceOf(vesting.address)).to.equal(ethers.utils.parseEther("100"));
+      expect(await foreignToken.balanceOf(owner.address)).to.equal(ethers.constants.Zero);
+
+      await vesting.connect(owner).releaseForeignToken(foreignToken.address, ethers.utils.parseEther("100"));
+
+      expect(await foreignToken.balanceOf(vesting.address)).to.equal(ethers.constants.Zero);
+      expect(await foreignToken.balanceOf(owner.address)).to.equal(ethers.utils.parseEther("100"));
+    });
+
+    it("should emit a ReleasedForeign event", async () => {
+      const Token = await ethers.getContractFactory("MockToken");
+      const foreignToken = await Token.deploy(ethers.utils.parseEther("100"), vesting.address);
+
+      await expect(vesting.connect(owner).releaseForeignToken(foreignToken.address, ethers.utils.parseEther("100")))
+        .to.emit(vesting, "ReleasedForeign")
+        .withArgs(owner.address, foreignToken.address, ethers.utils.parseEther("100"));
+    });
+
+    it("reverts when trying to release the token defined in the contract", async () => {
+      await expect(
+        vesting.connect(owner).releaseForeignToken(token.address, ethers.utils.parseEther("100"))
+      ).to.be.revertedWith("PeriodicTokenVesting#releaseForeignToken: INVALID_TOKEN");
+    });
+
+    it("reverts when the caller is not the owner", async () => {
+      await expect(
+        vesting.connect(extra).releaseForeignToken(token.address, ethers.utils.parseEther("100"))
+      ).to.be.revertedWith("Ownable: caller is not the owner");
+    });
+  });
 });

@@ -26,6 +26,12 @@ contract PeriodicTokenVesting is OwnableUpgradeable {
         uint256 _totalReleased
     );
 
+    event ReleasedForeign(
+        address indexed _sender,
+        IERC20 indexed _token,
+        uint256 _amount
+    );
+
     event Revoked(address indexed _sender);
 
     modifier onlyBeneficiary() {
@@ -180,10 +186,7 @@ contract PeriodicTokenVesting is OwnableUpgradeable {
 
         emit Released(_msgSender(), releasable, released);
 
-        require(
-            token.transfer(beneficiary, releasable),
-            "PeriodicTokenVesting#release: FAILED_TO_TRANSFER"
-        );
+        token.transfer(beneficiary, releasable);
     }
 
     function revoke() external onlyOwner {
@@ -196,6 +199,20 @@ contract PeriodicTokenVesting is OwnableUpgradeable {
         revokedTimestamp = block.timestamp;
 
         emit Revoked(_msgSender());
+    }
+
+    function releaseForeignToken(IERC20 _token, uint256 _amount)
+        external
+        onlyOwner
+    {
+        require(
+            _token != token,
+            "PeriodicTokenVesting#releaseForeignToken: INVALID_TOKEN"
+        );
+
+        emit ReleasedForeign(_msgSender(), _token, _amount);
+
+        _token.transfer(owner(), _amount);
     }
 
     function _setBeneficiary(address _newBeneficiary) private {
