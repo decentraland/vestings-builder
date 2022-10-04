@@ -28,7 +28,7 @@ contract PeriodicTokenVesting is OwnableUpgradeable {
 
     event ReleasedForeign(
         address indexed _sender,
-        IERC20 _token,
+        IERC20 indexed _token,
         uint256 _amount
     );
 
