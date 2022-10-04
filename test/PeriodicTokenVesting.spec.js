@@ -216,6 +216,22 @@ describe("PeriodicTokenVesting", () => {
         .withArgs(beneficiary.address, totalToVest, totalToVest);
     });
 
+    it("should release depending on how many periods have passed", async () => {
+      await helpers.time.setNextBlockTimestamp(initParams.start + initParams.periodDuration * 4);
+
+      await token.connect(treasury).transfer(vesting.address, totalToVest);
+
+      expect(await token.balanceOf(vesting.address)).to.equal(totalToVest);
+      expect(await token.balanceOf(beneficiary.address)).to.equal(ethers.constants.Zero);
+
+      await vesting.connect(beneficiary).release();
+
+      const currentlyVested = vestedPerPeriod.slice(0, 4).reduce((a, b) => a.add(b), ethers.constants.Zero);
+
+      expect(await token.balanceOf(vesting.address)).to.equal(totalToVest.sub(currentlyVested));
+      expect(await token.balanceOf(beneficiary.address)).to.equal(currentlyVested);
+    });
+
     it("should release only until it was revoked when all periods have passed", async () => {
       await helpers.time.setNextBlockTimestamp(initParams.start + initParams.periodDuration * 4);
 
