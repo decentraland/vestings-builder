@@ -49,7 +49,6 @@ contract PeriodicTokenVesting is OwnableUpgradeable {
     }
 
     /// @notice Initialize the vesting contract.
-    /// @dev This function can only be called once.
     /// @param _owner The Owner of the contract.
     /// @param _beneficiary The beneficiary of the vested tokens.
     /// @param _token The token to vest.
@@ -161,14 +160,12 @@ contract PeriodicTokenVesting is OwnableUpgradeable {
     }
 
     /// @notice Set a new Beneficiary.
-    /// @dev Only the current beneficiary can call this function.
     /// @param _newBeneficiary The new beneficiary of the vested tokens.
     function setBeneficiary(address _newBeneficiary) external onlyBeneficiary {
         _setBeneficiary(_newBeneficiary);
     }
 
     /// @notice Transfer vested tokens to the beneficiary.
-    /// @dev Only the current beneficiary can call this function.
     function release() external onlyBeneficiary {
         uint256 releasable = getReleasable();
 
@@ -191,6 +188,7 @@ contract PeriodicTokenVesting is OwnableUpgradeable {
         token.transfer(beneficiary, releasable);
     }
 
+    /// @notice Revokes the vesting.
     function revoke() external onlyOwner {
         require(isRevocable, "PeriodicTokenVesting#revoke: NON_REVOCABLE");
         require(
@@ -203,6 +201,9 @@ contract PeriodicTokenVesting is OwnableUpgradeable {
         emit Revoked(_msgSender());
     }
 
+    /// @notice Transfer other tokens owned by the contract to the owner.
+    /// @param _token The token to transfer.
+    /// @param _amount The amount of tokens to transfer.
     function releaseForeignToken(IERC20 _token, uint256 _amount)
         external
         onlyOwner
@@ -217,6 +218,7 @@ contract PeriodicTokenVesting is OwnableUpgradeable {
         _token.transfer(owner(), _amount);
     }
 
+    /// @notice Transfer any surplus tokens from the contract to the owner.
     function releaseSurplus() external onlyOwner {
         uint256 nonSurplus;
 
