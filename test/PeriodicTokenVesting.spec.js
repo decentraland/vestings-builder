@@ -333,7 +333,7 @@ describe("PeriodicTokenVesting", () => {
       await vesting.initialize(...initParamsList);
     });
 
-    it("releases the foreign token provided", async () => {
+    it("should release the foreign token provided", async () => {
       const Token = await ethers.getContractFactory("MockToken");
       const foreignToken = await Token.deploy(ethers.utils.parseEther("100"), vesting.address);
 
@@ -365,6 +365,48 @@ describe("PeriodicTokenVesting", () => {
       await expect(
         vesting.connect(extra).releaseForeignToken(token.address, ethers.utils.parseEther("100"))
       ).to.be.revertedWith("Ownable: caller is not the owner");
+    });
+  });
+
+  describe("releaseSurplus", () => {
+    beforeEach(async () => {
+      await vesting.initialize(...initParamsList);
+    });
+
+    it("should release the surplus tokens", async () => {
+      await token.connect(treasury).transfer(vesting.address, totalToVest.mul(2));
+
+      expect(await token.balanceOf(vesting.address)).to.equal(totalToVest.mul(2));
+      expect(await token.balanceOf(owner.address)).to.equal(ethers.constants.Zero);
+
+      await vesting.connect(owner).releaseSurplus();
+
+      expect(await token.balanceOf(vesting.address)).to.equal(totalToVest);
+      expect(await token.balanceOf(owner.address)).to.equal(totalToVest);
+    });
+
+    it("should release the surplus tokens after revoke", async () => {
+      await token.connect(treasury).transfer(vesting.address, totalToVest.mul(2));
+
+      await vesting.connect(owner).revoke();
+
+      expect(await token.balanceOf(vesting.address)).to.equal(totalToVest.mul(2));
+      expect(await token.balanceOf(owner.address)).to.equal(ethers.constants.Zero);
+
+      await vesting.connect(owner).releaseSurplus();
+
+      expect(await token.balanceOf(vesting.address)).to.equal(ethers.constants.Zero);
+      expect(await token.balanceOf(owner.address)).to.equal(totalToVest.mul(2));
+    });
+
+    it("reverts when there is no surplus", async () => {
+      await expect(vesting.connect(owner).releaseSurplus()).to.be.revertedWith(
+        "PeriodicTokenVesting#releaseSurplus: NO_SURPLUS"
+      );
+    });
+
+    it("reverts when the caller is not the owner", async () => {
+      await expect(vesting.connect(extra).releaseSurplus()).to.be.revertedWith("Ownable: caller is not the owner");
     });
   });
 });
