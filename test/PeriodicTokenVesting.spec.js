@@ -149,7 +149,7 @@ describe("PeriodicTokenVesting", () => {
     it("should emit a BeneficiaryUpdated event", async () => {
       await expect(vesting.connect(beneficiary).setBeneficiary(extra.address))
         .to.emit(vesting, "BeneficiaryUpdated")
-        .withArgs(beneficiary.address, extra.address);
+        .withArgs(extra.address);
     });
 
     it("reverts when sender is not the current beneficiary", async () => {
@@ -211,9 +211,7 @@ describe("PeriodicTokenVesting", () => {
 
       await token.connect(treasury).transfer(vesting.address, totalToVest);
 
-      await expect(vesting.connect(beneficiary).release())
-        .to.emit(vesting, "Released")
-        .withArgs(beneficiary.address, totalToVest, totalToVest);
+      await expect(vesting.connect(beneficiary).release()).to.emit(vesting, "Released").withArgs(totalToVest);
     });
 
     it("should release depending on how many periods have passed", async () => {
@@ -308,7 +306,7 @@ describe("PeriodicTokenVesting", () => {
     });
 
     it("should emit a Revoked event", async () => {
-      await expect(vesting.connect(owner).revoke()).to.emit(vesting, "Revoked").withArgs(owner.address);
+      await expect(vesting.connect(owner).revoke()).to.emit(vesting, "Revoked");
     });
 
     it("reverts when caller is not the owner", async () => {
@@ -356,7 +354,7 @@ describe("PeriodicTokenVesting", () => {
 
       await expect(vesting.connect(owner).releaseForeignToken(foreignToken.address, ethers.utils.parseEther("100")))
         .to.emit(vesting, "ReleasedForeign")
-        .withArgs(owner.address, foreignToken.address, ethers.utils.parseEther("100"));
+        .withArgs(foreignToken.address, ethers.utils.parseEther("100"));
     });
 
     it("reverts when trying to release the token defined in the contract", async () => {
@@ -406,9 +404,7 @@ describe("PeriodicTokenVesting", () => {
     it("should emit a ReleasedSurplus event", async () => {
       await token.connect(treasury).transfer(vesting.address, totalToVest.mul(2));
 
-      await expect(vesting.connect(owner).releaseSurplus())
-        .to.emit(vesting, "ReleasedSurplus")
-        .withArgs(owner.address, totalToVest);
+      await expect(vesting.connect(owner).releaseSurplus()).to.emit(vesting, "ReleasedSurplus").withArgs(totalToVest);
     });
 
     it("reverts when there is no surplus", async () => {

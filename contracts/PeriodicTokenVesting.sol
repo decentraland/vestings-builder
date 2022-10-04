@@ -15,26 +15,11 @@ contract PeriodicTokenVesting is OwnableUpgradeable {
     uint256 private released;
     uint256 private revokedTimestamp;
 
-    event BeneficiaryUpdated(
-        address indexed _sender,
-        address indexed _newBeneficiary
-    );
-
-    event Released(
-        address indexed _sender,
-        uint256 _currentlyReleased,
-        uint256 _totalReleased
-    );
-
-    event ReleasedForeign(
-        address indexed _sender,
-        IERC20 indexed _token,
-        uint256 _amount
-    );
-
-    event ReleasedSurplus(address indexed _sender, uint256 _amount);
-
-    event Revoked(address indexed _sender);
+    event BeneficiaryUpdated(address indexed _to);
+    event Revoked();
+    event Released(uint256 _amount);
+    event ReleasedForeign(IERC20 indexed _token, uint256 _amount);
+    event ReleasedSurplus(uint256 _amount);
 
     modifier onlyBeneficiary() {
         require(
@@ -160,9 +145,9 @@ contract PeriodicTokenVesting is OwnableUpgradeable {
     }
 
     /// @notice Set a new Beneficiary.
-    /// @param _newBeneficiary The new beneficiary of the vested tokens.
-    function setBeneficiary(address _newBeneficiary) external onlyBeneficiary {
-        _setBeneficiary(_newBeneficiary);
+    /// @param _to The new beneficiary of the vested tokens.
+    function setBeneficiary(address _to) external onlyBeneficiary {
+        _setBeneficiary(_to);
     }
 
     /// @notice Transfer vested tokens to the beneficiary.
@@ -183,7 +168,7 @@ contract PeriodicTokenVesting is OwnableUpgradeable {
 
         released += releasable;
 
-        emit Released(_msgSender(), releasable, released);
+        emit Released(released);
 
         token.transfer(beneficiary, releasable);
     }
@@ -198,7 +183,7 @@ contract PeriodicTokenVesting is OwnableUpgradeable {
 
         revokedTimestamp = block.timestamp;
 
-        emit Revoked(_msgSender());
+        emit Revoked();
     }
 
     /// @notice Transfer other tokens owned by the contract to the owner.
@@ -213,7 +198,7 @@ contract PeriodicTokenVesting is OwnableUpgradeable {
             "PeriodicTokenVesting#releaseForeignToken: INVALID_TOKEN"
         );
 
-        emit ReleasedForeign(_msgSender(), _token, _amount);
+        emit ReleasedForeign(_token, _amount);
 
         _token.transfer(owner(), _amount);
     }
@@ -241,19 +226,19 @@ contract PeriodicTokenVesting is OwnableUpgradeable {
 
         uint256 surplus = contractBalance - nonSurplus;
 
-        emit ReleasedSurplus(_msgSender(), surplus);
+        emit ReleasedSurplus(surplus);
 
         token.transfer(owner(), surplus);
     }
 
-    function _setBeneficiary(address _newBeneficiary) private {
+    function _setBeneficiary(address _to) private {
         require(
-            _newBeneficiary != address(0),
+            _to != address(0),
             "PeriodicTokenVesting#_setBeneficiary: INVALID_BENEFICIARY"
         );
 
-        beneficiary = _newBeneficiary;
+        beneficiary = _to;
 
-        emit BeneficiaryUpdated(_msgSender(), _newBeneficiary);
+        emit BeneficiaryUpdated(_to);
     }
 }
