@@ -2,6 +2,9 @@ const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const helpers = require("@nomicfoundation/hardhat-network-helpers");
 
+const { parseEther } = ethers.utils;
+const { Zero, AddressZero } = ethers.constants;
+
 describe("PeriodicTokenVesting", () => {
   // Signers
   let deployer;
@@ -25,7 +28,7 @@ describe("PeriodicTokenVesting", () => {
     [deployer, owner, beneficiary, treasury, extra] = await ethers.getSigners();
 
     const Token = await ethers.getContractFactory("MockToken");
-    token = await Token.deploy(ethers.utils.parseEther("100000"), treasury.address);
+    token = await Token.deploy(parseEther("100000"), treasury.address);
 
     const PeriodicTokenVesting = await ethers.getContractFactory("PeriodicTokenVesting");
     vestingImpl = await PeriodicTokenVesting.deploy();
@@ -37,25 +40,25 @@ describe("PeriodicTokenVesting", () => {
     vesting = PeriodicTokenVesting.attach(proxy.address);
 
     vestedPerPeriod = [
-      ethers.constants.Zero,
-      ethers.constants.Zero,
-      ethers.constants.Zero,
-      ethers.utils.parseEther("2500"),
-      ethers.utils.parseEther("625"),
-      ethers.utils.parseEther("625"),
-      ethers.utils.parseEther("625"),
-      ethers.utils.parseEther("625"),
-      ethers.utils.parseEther("625"),
-      ethers.utils.parseEther("625"),
-      ethers.utils.parseEther("625"),
-      ethers.utils.parseEther("625"),
-      ethers.utils.parseEther("625"),
-      ethers.utils.parseEther("625"),
-      ethers.utils.parseEther("625"),
-      ethers.utils.parseEther("625"),
+      Zero,
+      Zero,
+      Zero,
+      parseEther("2500"),
+      parseEther("625"),
+      parseEther("625"),
+      parseEther("625"),
+      parseEther("625"),
+      parseEther("625"),
+      parseEther("625"),
+      parseEther("625"),
+      parseEther("625"),
+      parseEther("625"),
+      parseEther("625"),
+      parseEther("625"),
+      parseEther("625"),
     ];
 
-    totalToVest = vestedPerPeriod.reduce((acc, next) => acc.add(next), ethers.constants.Zero);
+    totalToVest = vestedPerPeriod.reduce((acc, next) => acc.add(next), Zero);
 
     initParams = {
       owner: owner.address,
@@ -72,12 +75,12 @@ describe("PeriodicTokenVesting", () => {
 
   describe("initialize", () => {
     it("should have uninitialized values before initialization", async () => {
-      expect(await vesting.owner()).to.equal(ethers.constants.AddressZero);
-      expect(await vesting.getBeneficiary()).to.equal(ethers.constants.AddressZero);
-      expect(await vesting.getToken()).to.equal(ethers.constants.AddressZero);
+      expect(await vesting.owner()).to.equal(AddressZero);
+      expect(await vesting.getBeneficiary()).to.equal(AddressZero);
+      expect(await vesting.getToken()).to.equal(AddressZero);
       expect(await vesting.getIsRevocable()).to.be.false;
-      expect(await vesting.getStart()).to.equal(ethers.constants.AddressZero);
-      expect(await vesting.getPeriodDuration()).to.equal(ethers.constants.AddressZero);
+      expect(await vesting.getStart()).to.equal(AddressZero);
+      expect(await vesting.getPeriodDuration()).to.equal(AddressZero);
       expect(await vesting.getVestedPerPeriod()).to.be.empty;
     });
 
@@ -108,14 +111,14 @@ describe("PeriodicTokenVesting", () => {
     });
 
     it("reverts when owner is 0x0", async () => {
-      initParams.owner = ethers.constants.AddressZero;
+      initParams.owner = AddressZero;
       initParamsList = Object.values(initParams);
 
       await expect(vesting.initialize(...initParamsList)).to.be.revertedWith("Ownable: new owner is the zero address");
     });
 
     it("reverts when beneficiary is 0x0", async () => {
-      initParams.beneficiary = ethers.constants.AddressZero;
+      initParams.beneficiary = AddressZero;
       initParamsList = Object.values(initParams);
 
       await expect(vesting.initialize(...initParamsList)).to.be.revertedWith(
@@ -124,7 +127,7 @@ describe("PeriodicTokenVesting", () => {
     });
 
     it("reverts when token is 0x0", async () => {
-      initParams.token = ethers.constants.AddressZero;
+      initParams.token = AddressZero;
       initParamsList = Object.values(initParams);
 
       await expect(vesting.initialize(...initParamsList)).to.be.revertedWith(
@@ -159,7 +162,7 @@ describe("PeriodicTokenVesting", () => {
     });
 
     it("reverts when beneficiary is 0x0", async () => {
-      await expect(vesting.connect(beneficiary).setBeneficiary(ethers.constants.AddressZero)).to.be.revertedWith(
+      await expect(vesting.connect(beneficiary).setBeneficiary(AddressZero)).to.be.revertedWith(
         "PeriodicTokenVesting#_setBeneficiary: INVALID_BENEFICIARY"
       );
     });
@@ -182,11 +185,11 @@ describe("PeriodicTokenVesting", () => {
       await token.connect(treasury).transfer(vesting.address, totalToVest);
 
       expect(await token.balanceOf(vesting.address)).to.equal(totalToVest);
-      expect(await token.balanceOf(beneficiary.address)).to.equal(ethers.constants.Zero);
+      expect(await token.balanceOf(beneficiary.address)).to.equal(Zero);
 
       await vesting.connect(beneficiary)["release()"]();
 
-      expect(await token.balanceOf(vesting.address)).to.equal(ethers.constants.Zero);
+      expect(await token.balanceOf(vesting.address)).to.equal(Zero);
       expect(await token.balanceOf(beneficiary.address)).to.equal(totalToVest);
     });
 
@@ -198,13 +201,13 @@ describe("PeriodicTokenVesting", () => {
       await token.connect(treasury).transfer(vesting.address, totalToVest);
 
       expect(await token.balanceOf(vesting.address)).to.equal(totalToVest);
-      expect(await token.balanceOf(beneficiary.address)).to.equal(ethers.constants.Zero);
-      expect(await token.balanceOf(extra.address)).to.equal(ethers.constants.Zero);
+      expect(await token.balanceOf(beneficiary.address)).to.equal(Zero);
+      expect(await token.balanceOf(extra.address)).to.equal(Zero);
 
       await vesting.connect(beneficiary)["release(address)"](extra.address);
 
-      expect(await token.balanceOf(vesting.address)).to.equal(ethers.constants.Zero);
-      expect(await token.balanceOf(beneficiary.address)).to.equal(ethers.constants.Zero);
+      expect(await token.balanceOf(vesting.address)).to.equal(Zero);
+      expect(await token.balanceOf(beneficiary.address)).to.equal(Zero);
       expect(await token.balanceOf(extra.address)).to.equal(totalToVest);
     });
 
@@ -215,7 +218,7 @@ describe("PeriodicTokenVesting", () => {
 
       await token.connect(treasury).transfer(vesting.address, totalToVest);
 
-      expect(await vesting.getReleased()).to.equal(ethers.constants.Zero);
+      expect(await vesting.getReleased()).to.equal(Zero);
 
       await vesting.connect(beneficiary)["release()"]();
 
@@ -240,11 +243,11 @@ describe("PeriodicTokenVesting", () => {
       await token.connect(treasury).transfer(vesting.address, totalToVest);
 
       expect(await token.balanceOf(vesting.address)).to.equal(totalToVest);
-      expect(await token.balanceOf(beneficiary.address)).to.equal(ethers.constants.Zero);
+      expect(await token.balanceOf(beneficiary.address)).to.equal(Zero);
 
       await vesting.connect(beneficiary)["release()"]();
 
-      const currentlyVested = vestedPerPeriod.slice(0, 4).reduce((a, b) => a.add(b), ethers.constants.Zero);
+      const currentlyVested = vestedPerPeriod.slice(0, 4).reduce((a, b) => a.add(b), Zero);
 
       expect(await token.balanceOf(vesting.address)).to.equal(totalToVest.sub(currentlyVested));
       expect(await token.balanceOf(beneficiary.address)).to.equal(currentlyVested);
@@ -262,11 +265,11 @@ describe("PeriodicTokenVesting", () => {
       );
 
       expect(await token.balanceOf(vesting.address)).to.equal(totalToVest);
-      expect(await token.balanceOf(beneficiary.address)).to.equal(ethers.constants.Zero);
+      expect(await token.balanceOf(beneficiary.address)).to.equal(Zero);
 
       await vesting.connect(beneficiary)["release()"]();
 
-      const vestedUntilRevoke = vestedPerPeriod.slice(0, 4).reduce((a, b) => a.add(b), ethers.constants.Zero);
+      const vestedUntilRevoke = vestedPerPeriod.slice(0, 4).reduce((a, b) => a.add(b), Zero);
 
       expect(await token.balanceOf(vesting.address)).to.equal(totalToVest.sub(vestedUntilRevoke));
       expect(await token.balanceOf(beneficiary.address)).to.equal(vestedUntilRevoke);
@@ -308,7 +311,7 @@ describe("PeriodicTokenVesting", () => {
     });
 
     it("reverts when the receiver is 0x0", async () => {
-      await expect(vesting.connect(beneficiary)["release(address)"](ethers.constants.AddressZero)).to.be.revertedWith(
+      await expect(vesting.connect(beneficiary)["release(address)"](AddressZero)).to.be.revertedWith(
         "PeriodicTokenVesting#_release: INVALID_RECEIVER"
       );
     });
@@ -361,27 +364,25 @@ describe("PeriodicTokenVesting", () => {
 
     beforeEach(async () => {
       const MockToken = await ethers.getContractFactory("MockToken");
-      foreignToken = await MockToken.deploy(ethers.utils.parseEther("200"), treasury.address);
+      foreignToken = await MockToken.deploy(parseEther("200"), treasury.address);
 
       await vesting.initialize(...initParamsList);
     });
 
     it("should transfer a determined amount of foreign tokens to the receiver", async () => {
-      await foreignToken.connect(treasury).transfer(vesting.address, ethers.utils.parseEther("100"));
+      await foreignToken.connect(treasury).transfer(vesting.address, parseEther("100"));
 
-      expect(await foreignToken.balanceOf(vesting.address)).to.equal(ethers.utils.parseEther("100"));
-      expect(await foreignToken.balanceOf(beneficiary.address)).to.equal(ethers.constants.Zero);
+      expect(await foreignToken.balanceOf(vesting.address)).to.equal(parseEther("100"));
+      expect(await foreignToken.balanceOf(beneficiary.address)).to.equal(Zero);
 
-      await vesting
-        .connect(owner)
-        .releaseForeignToken(foreignToken.address, beneficiary.address, ethers.utils.parseEther("50"));
+      await vesting.connect(owner).releaseForeignToken(foreignToken.address, beneficiary.address, parseEther("50"));
 
-      expect(await foreignToken.balanceOf(vesting.address)).to.equal(ethers.utils.parseEther("50"));
-      expect(await foreignToken.balanceOf(beneficiary.address)).to.equal(ethers.utils.parseEther("50"));
+      expect(await foreignToken.balanceOf(vesting.address)).to.equal(parseEther("50"));
+      expect(await foreignToken.balanceOf(beneficiary.address)).to.equal(parseEther("50"));
     });
 
     it("should emit a ReleasedForeign event", async () => {
-      const amount = ethers.utils.parseEther("100");
+      const amount = parseEther("100");
       await foreignToken.connect(treasury).transfer(vesting.address, amount);
       await expect(vesting.connect(owner).releaseForeignToken(foreignToken.address, beneficiary.address, amount))
         .to.emit(vesting, "ReleasedForeign")
@@ -390,31 +391,25 @@ describe("PeriodicTokenVesting", () => {
 
     it("reverts when the receiver is 0x0", async () => {
       await expect(
-        vesting
-          .connect(owner)
-          .releaseForeignToken(foreignToken.address, ethers.constants.AddressZero, ethers.utils.parseEther("100"))
+        vesting.connect(owner).releaseForeignToken(foreignToken.address, AddressZero, parseEther("100"))
       ).to.be.revertedWith("PeriodicTokenVesting#releaseForeignToken: INVALID_RECEIVER");
     });
 
     it("reverts when the caller is not the owner", async () => {
       await expect(
-        vesting
-          .connect(extra)
-          .releaseForeignToken(foreignToken.address, beneficiary.address, ethers.utils.parseEther("100"))
+        vesting.connect(extra).releaseForeignToken(foreignToken.address, beneficiary.address, parseEther("100"))
       ).to.be.revertedWith("Ownable: caller is not the owner");
     });
 
     it("reverts when amount is 0", async () => {
       await expect(
-        vesting.connect(owner).releaseForeignToken(foreignToken.address, beneficiary.address, ethers.constants.Zero)
+        vesting.connect(owner).releaseForeignToken(foreignToken.address, beneficiary.address, Zero)
       ).to.be.revertedWith("PeriodicTokenVesting#releaseForeignToken: INVALID_AMOUNT");
     });
 
     it("reverts when contract balance is lower than amount", async () => {
       await expect(
-        vesting
-          .connect(owner)
-          .releaseForeignToken(foreignToken.address, beneficiary.address, ethers.utils.parseEther("100"))
+        vesting.connect(owner).releaseForeignToken(foreignToken.address, beneficiary.address, parseEther("100"))
       ).to.be.revertedWith("ERC20: transfer amount exceeds balance");
     });
   });
@@ -428,7 +423,7 @@ describe("PeriodicTokenVesting", () => {
       await token.connect(treasury).transfer(vesting.address, totalToVest.mul(2));
 
       expect(await token.balanceOf(vesting.address)).to.equal(totalToVest.mul(2));
-      expect(await token.balanceOf(owner.address)).to.equal(ethers.constants.Zero);
+      expect(await token.balanceOf(owner.address)).to.equal(Zero);
 
       await vesting.connect(owner).releaseSurplus();
 
@@ -442,11 +437,11 @@ describe("PeriodicTokenVesting", () => {
       await vesting.connect(owner).revoke();
 
       expect(await token.balanceOf(vesting.address)).to.equal(totalToVest.mul(2));
-      expect(await token.balanceOf(owner.address)).to.equal(ethers.constants.Zero);
+      expect(await token.balanceOf(owner.address)).to.equal(Zero);
 
       await vesting.connect(owner).releaseSurplus();
 
-      expect(await token.balanceOf(vesting.address)).to.equal(ethers.constants.Zero);
+      expect(await token.balanceOf(vesting.address)).to.equal(Zero);
       expect(await token.balanceOf(owner.address)).to.equal(totalToVest.mul(2));
     });
 
