@@ -358,50 +358,60 @@ describe("PeriodicTokenVesting", () => {
   });
 
   describe("releaseSurplus", () => {
+    let totalToVestDoubled;
+    let releaseAmount;
+
     beforeEach(async () => {
       await vesting.initialize(...initParamsList);
+
+      totalToVestDoubled = totalToVest.mul(2);
+      releaseAmount = parseEther("100");
     });
 
-    it("should release the surplus tokens", async () => {
-      await token.connect(treasury).transfer(vesting.address, totalToVest.mul(2));
+    it("should release an amount of surplus tokens to the receiver", async () => {
+      await token.connect(treasury).transfer(vesting.address, totalToVestDoubled);
 
-      expect(await token.balanceOf(vesting.address)).to.equal(totalToVest.mul(2));
-      expect(await token.balanceOf(owner.address)).to.equal(Zero);
+      expect(await token.balanceOf(vesting.address)).to.equal(totalToVestDoubled);
+      expect(await token.balanceOf(extra.address)).to.equal(Zero);
 
-      await vesting.connect(owner).releaseSurplus();
+      await vesting.connect(owner).releaseSurplus(extra.address, releaseAmount);
 
-      expect(await token.balanceOf(vesting.address)).to.equal(totalToVest);
-      expect(await token.balanceOf(owner.address)).to.equal(totalToVest);
-    });
-
-    it("should release the surplus tokens after revoke", async () => {
-      await token.connect(treasury).transfer(vesting.address, totalToVest.mul(2));
-
-      await vesting.connect(owner).revoke();
-
-      expect(await token.balanceOf(vesting.address)).to.equal(totalToVest.mul(2));
-      expect(await token.balanceOf(owner.address)).to.equal(Zero);
-
-      await vesting.connect(owner).releaseSurplus();
-
-      expect(await token.balanceOf(vesting.address)).to.equal(Zero);
-      expect(await token.balanceOf(owner.address)).to.equal(totalToVest.mul(2));
+      expect(await token.balanceOf(vesting.address)).to.equal(totalToVestDoubled.sub(releaseAmount));
+      expect(await token.balanceOf(extra.address)).to.equal(releaseAmount);
     });
 
     it("should emit a ReleasedSurplus event", async () => {
-      await token.connect(treasury).transfer(vesting.address, totalToVest.mul(2));
+      await token.connect(treasury).transfer(vesting.address, totalToVestDoubled);
 
-      await expect(vesting.connect(owner).releaseSurplus()).to.emit(vesting, "ReleasedSurplus").withArgs(totalToVest);
+      await expect(vesting.connect(owner).releaseSurplus(extra.address, releaseAmount))
+        .to.emit(vesting, "ReleasedSurplus")
+        .withArgs(extra.address, releaseAmount);
     });
 
-    it("reverts when there is no surplus", async () => {
-      await expect(vesting.connect(owner).releaseSurplus()).to.be.revertedWith(
-        "PeriodicTokenVesting#releaseSurplus: NO_SURPLUS"
+    it("reverts when amount is 0", async () => {
+      await expect(vesting.connect(owner).releaseSurplus(extra.address, Zero)).to.be.revertedWith(
+        "PeriodicTokenVesting#releaseSurplus: INVALID_AMOUNT"
+      );
+    });
+
+    it("reverts when receiver is 0x0", async () => {
+      await expect(vesting.connect(owner).releaseSurplus(AddressZero, releaseAmount)).to.be.revertedWith(
+        "PeriodicTokenVesting#releaseSurplus: INVALID_RECEIVER"
+      );
+    });
+
+    it("reverts when amount is higher than the surplus there is no surplus", async () => {
+      await token.connect(treasury).transfer(vesting.address, totalToVestDoubled);
+
+      await expect(vesting.connect(owner).releaseSurplus(extra.address, totalToVest.add("1"))).to.be.revertedWith(
+        "PeriodicTokenVesting#releaseSurplus: INVALID_AMOUNT"
       );
     });
 
     it("reverts when the caller is not the owner", async () => {
-      await expect(vesting.connect(extra).releaseSurplus()).to.be.revertedWith("Ownable: caller is not the owner");
+      await expect(vesting.connect(extra).releaseSurplus(extra.address, releaseAmount)).to.be.revertedWith(
+        "Ownable: caller is not the owner"
+      );
     });
   });
 });

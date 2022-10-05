@@ -23,7 +23,7 @@ contract PeriodicTokenVesting is OwnableUpgradeable {
         IERC20 indexed _token,
         uint256 _amount
     );
-    event ReleasedSurplus(uint256 _amount);
+    event ReleasedSurplus(address indexed _receiver, uint256 _amount);
 
     modifier onlyBeneficiary() {
         require(
@@ -222,7 +222,20 @@ contract PeriodicTokenVesting is OwnableUpgradeable {
     }
 
     /// @notice Transfer any surplus tokens from the contract to the owner.
-    function releaseSurplus() external onlyOwner {
+    function releaseSurplus(address _receiver, uint256 _amount)
+        external
+        onlyOwner
+    {
+        require(
+            _receiver != address(0),
+            "PeriodicTokenVesting#releaseSurplus: INVALID_RECEIVER"
+        );
+        
+        require(
+            _amount != 0,
+            "PeriodicTokenVesting#releaseSurplus: INVALID_AMOUNT"
+        );
+
         uint256 nonSurplus;
 
         if (revokedTimestamp != 0) {
@@ -244,9 +257,14 @@ contract PeriodicTokenVesting is OwnableUpgradeable {
 
         uint256 surplus = contractBalance - nonSurplus;
 
-        emit ReleasedSurplus(surplus);
+        require(
+            _amount <= surplus,
+            "PeriodicTokenVesting#releaseSurplus: INVALID_AMOUNT"
+        );
 
-        token.transfer(owner(), surplus);
+        emit ReleasedSurplus(_receiver, _amount);
+
+        token.transfer(_receiver, _amount);
     }
 
     function _setBeneficiary(address _beneficiary) private {
