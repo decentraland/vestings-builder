@@ -357,51 +357,65 @@ describe("PeriodicTokenVesting", () => {
   });
 
   describe("releaseForeignToken", () => {
+    let foreignToken;
+
     beforeEach(async () => {
+      const MockToken = await ethers.getContractFactory("MockToken");
+      foreignToken = await MockToken.deploy(ethers.utils.parseEther("200"), treasury.address);
+
       await vesting.initialize(...initParamsList);
     });
 
-    it("should release the foreign token provided", async () => {
-      const Token = await ethers.getContractFactory("MockToken");
-      const foreignToken = await Token.deploy(ethers.utils.parseEther("100"), vesting.address);
+    it("should transfer a determined amount of foreign tokens to the receiver", async () => {
+      await foreignToken.connect(treasury).transfer(vesting.address, ethers.utils.parseEther("100"));
 
       expect(await foreignToken.balanceOf(vesting.address)).to.equal(ethers.utils.parseEther("100"));
-      expect(await foreignToken.balanceOf(owner.address)).to.equal(ethers.constants.Zero);
+      expect(await foreignToken.balanceOf(beneficiary.address)).to.equal(ethers.constants.Zero);
 
-      await vesting.connect(owner).releaseForeignToken(foreignToken.address);
+      await vesting
+        .connect(owner)
+        .releaseForeignToken(foreignToken.address, beneficiary.address, ethers.utils.parseEther("50"));
 
-      expect(await foreignToken.balanceOf(vesting.address)).to.equal(ethers.constants.Zero);
-      expect(await foreignToken.balanceOf(owner.address)).to.equal(ethers.utils.parseEther("100"));
+      expect(await foreignToken.balanceOf(vesting.address)).to.equal(ethers.utils.parseEther("50"));
+      expect(await foreignToken.balanceOf(beneficiary.address)).to.equal(ethers.utils.parseEther("50"));
     });
 
     it("should emit a ReleasedForeign event", async () => {
-      const Token = await ethers.getContractFactory("MockToken");
-      const foreignToken = await Token.deploy(ethers.utils.parseEther("100"), vesting.address);
-
-      await expect(vesting.connect(owner).releaseForeignToken(foreignToken.address))
+      const amount = ethers.utils.parseEther("100");
+      await foreignToken.connect(treasury).transfer(vesting.address, amount);
+      await expect(vesting.connect(owner).releaseForeignToken(foreignToken.address, beneficiary.address, amount))
         .to.emit(vesting, "ReleasedForeign")
-        .withArgs(foreignToken.address, ethers.utils.parseEther("100"));
+        .withArgs(beneficiary.address, foreignToken.address, amount);
     });
 
-    it("reverts when trying to release the token defined in the contract", async () => {
-      await expect(vesting.connect(owner).releaseForeignToken(token.address)).to.be.revertedWith(
-        "PeriodicTokenVesting#releaseForeignToken: INVALID_TOKEN"
-      );
+    it("reverts when the receiver is 0x0", async () => {
+      await expect(
+        vesting
+          .connect(owner)
+          .releaseForeignToken(foreignToken.address, ethers.constants.AddressZero, ethers.utils.parseEther("100"))
+      ).to.be.revertedWith("PeriodicTokenVesting#releaseForeignToken: INVALID_RECEIVER");
     });
 
     it("reverts when the caller is not the owner", async () => {
-      await expect(vesting.connect(extra).releaseForeignToken(token.address)).to.be.revertedWith(
-        "Ownable: caller is not the owner"
-      );
+      await expect(
+        vesting
+          .connect(extra)
+          .releaseForeignToken(foreignToken.address, beneficiary.address, ethers.utils.parseEther("100"))
+      ).to.be.revertedWith("Ownable: caller is not the owner");
     });
 
-    it("reverts when there is nothing to release", async () => {
-      const Token = await ethers.getContractFactory("MockToken");
-      const foreignToken = await Token.deploy(ethers.utils.parseEther("100"), treasury.address);
+    it("reverts when amount is 0", async () => {
+      await expect(
+        vesting.connect(owner).releaseForeignToken(foreignToken.address, beneficiary.address, ethers.constants.Zero)
+      ).to.be.revertedWith("PeriodicTokenVesting#releaseForeignToken: INVALID_AMOUNT");
+    });
 
-      await expect(vesting.connect(owner).releaseForeignToken(foreignToken.address)).to.be.revertedWith(
-        "PeriodicTokenVesting#releaseForeignToken: NOTHING_TO_RELEASE"
-      );
+    it("reverts when contract balance is lower than amount", async () => {
+      await expect(
+        vesting
+          .connect(owner)
+          .releaseForeignToken(foreignToken.address, beneficiary.address, ethers.utils.parseEther("100"))
+      ).to.be.revertedWith("ERC20: transfer amount exceeds balance");
     });
   });
 

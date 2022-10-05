@@ -18,7 +18,11 @@ contract PeriodicTokenVesting is OwnableUpgradeable {
     event BeneficiaryUpdated(address indexed _to);
     event Revoked();
     event Released(address indexed _receiver, uint256 _amount);
-    event ReleasedForeign(IERC20 indexed _token, uint256 _amount);
+    event ReleasedForeign(
+        address indexed _receiver,
+        IERC20 indexed _token,
+        uint256 _amount
+    );
     event ReleasedSurplus(uint256 _amount);
 
     modifier onlyBeneficiary() {
@@ -174,24 +178,33 @@ contract PeriodicTokenVesting is OwnableUpgradeable {
         emit Revoked();
     }
 
-    /// @notice Transfer foreign tokens owned by the contract to the owner.
+    /// @notice Transfer a certain amount of foreign tokens to an address.
     /// @param _token The foreign token to release.
-    function releaseForeignToken(IERC20 _token) external onlyOwner {
+    /// @param _receiver The address to transfer the foreign tokens to.
+    /// @param _amount The amount of foreign tokens to release.
+    function releaseForeignToken(
+        IERC20 _token,
+        address _receiver,
+        uint256 _amount
+    ) external onlyOwner {
         require(
             _token != token,
             "PeriodicTokenVesting#releaseForeignToken: INVALID_TOKEN"
         );
 
-        uint256 amount = _token.balanceOf(address(this));
-
         require(
-            amount > 0,
-            "PeriodicTokenVesting#releaseForeignToken: NOTHING_TO_RELEASE"
+            _receiver != address(0),
+            "PeriodicTokenVesting#releaseForeignToken: INVALID_RECEIVER"
         );
 
-        emit ReleasedForeign(_token, amount);
+        require(
+            _amount > 0,
+            "PeriodicTokenVesting#releaseForeignToken: INVALID_AMOUNT"
+        );
 
-        _token.transfer(owner(), amount);
+        emit ReleasedForeign(_receiver, _token, _amount);
+
+        _token.transfer(_receiver, _amount);
     }
 
     /// @notice Transfer any surplus tokens from the contract to the owner.
