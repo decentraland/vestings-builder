@@ -15,26 +15,15 @@ contract PeriodicTokenVesting is OwnableUpgradeable {
     uint256 private released;
     uint256 private revokedTimestamp;
 
-    event BeneficiaryUpdated(
-        address indexed _sender,
-        address indexed _newBeneficiary
-    );
-
-    event Released(
-        address indexed _sender,
-        uint256 _currentlyReleased,
-        uint256 _totalReleased
-    );
-
+    event BeneficiaryUpdated(address indexed _to);
+    event Revoked();
+    event Released(address indexed _receiver, uint256 _amount);
     event ReleasedForeign(
-        address indexed _sender,
+        address indexed _receiver,
         IERC20 indexed _token,
         uint256 _amount
     );
-
-    event ReleasedSurplus(address indexed _sender, uint256 _amount);
-
-    event Revoked(address indexed _sender);
+    event ReleasedSurplus(address indexed _receiver, uint256 _amount);
 
     modifier onlyBeneficiary() {
         require(
@@ -49,7 +38,6 @@ contract PeriodicTokenVesting is OwnableUpgradeable {
     }
 
     /// @notice Initialize the vesting contract.
-    /// @dev This function can only be called once.
     /// @param _owner The Owner of the contract.
     /// @param _beneficiary The beneficiary of the vested tokens.
     /// @param _token The token to vest.
@@ -161,36 +149,37 @@ contract PeriodicTokenVesting is OwnableUpgradeable {
     }
 
     /// @notice Set a new Beneficiary.
-    /// @dev Only the current beneficiary can call this function.
-    /// @param _newBeneficiary The new beneficiary of the vested tokens.
-    function setBeneficiary(address _newBeneficiary) external onlyBeneficiary {
-        _setBeneficiary(_newBeneficiary);
+    /// @param _to The new beneficiary of the vested tokens.
+    function setBeneficiary(address _to) external onlyBeneficiary {
+        _setBeneficiary(_to);
     }
 
-    /// @notice Transfer vested tokens to the beneficiary.
-    /// @dev Only the current beneficiary can call this function.
-    function release() external onlyBeneficiary {
+    /// @notice Transfer vested tokens to a different address.
+    /// @param _receiver The address to transfer the vested tokens to.
+    function release(address _receiver, uint256 _amount)
+        external
+        onlyBeneficiary
+    {
+        require(
+            _receiver != address(0),
+            "PeriodicTokenVesting#release: INVALID_RECEIVER"
+        );
+
         uint256 releasable = getReleasable();
 
         require(
-            releasable > 0,
-            "PeriodicTokenVesting#release: NOTHING_TO_RELEASE"
+            _amount > 0 && _amount <= releasable,
+            "PeriodicTokenVesting#release: INVALID_AMOUNT"
         );
 
-        uint256 contractBalance = token.balanceOf(address(this));
+        released += _amount;
 
-        require(
-            releasable <= contractBalance,
-            "PeriodicTokenVesting#release: INSUFFICIENT_CONTRACT_BALANCE"
-        );
+        emit Released(_receiver, _amount);
 
-        released += releasable;
-
-        emit Released(_msgSender(), releasable, released);
-
-        token.transfer(beneficiary, releasable);
+        token.transfer(_receiver, _amount);
     }
 
+    /// @notice Revokes the vesting.
     function revoke() external onlyOwner {
         require(isRevocable, "PeriodicTokenVesting#revoke: NON_REVOCABLE");
         require(
@@ -200,24 +189,53 @@ contract PeriodicTokenVesting is OwnableUpgradeable {
 
         revokedTimestamp = block.timestamp;
 
-        emit Revoked(_msgSender());
+        emit Revoked();
     }
 
-    function releaseForeignToken(IERC20 _token, uint256 _amount)
-        external
-        onlyOwner
-    {
+    /// @notice Transfer a certain amount of foreign tokens to an address.
+    /// @param _token The foreign token to release.
+    /// @param _receiver The address to transfer the foreign tokens to.
+    /// @param _amount The amount of foreign tokens to release.
+    function releaseForeignToken(
+        IERC20 _token,
+        address _receiver,
+        uint256 _amount
+    ) external onlyOwner {
         require(
             _token != token,
             "PeriodicTokenVesting#releaseForeignToken: INVALID_TOKEN"
         );
 
-        emit ReleasedForeign(_msgSender(), _token, _amount);
+        require(
+            _receiver != address(0),
+            "PeriodicTokenVesting#releaseForeignToken: INVALID_RECEIVER"
+        );
 
-        _token.transfer(owner(), _amount);
+        require(
+            _amount > 0,
+            "PeriodicTokenVesting#releaseForeignToken: INVALID_AMOUNT"
+        );
+
+        emit ReleasedForeign(_receiver, _token, _amount);
+
+        _token.transfer(_receiver, _amount);
     }
 
-    function releaseSurplus() external onlyOwner {
+    /// @notice Transfer any surplus tokens from the contract to the owner.
+    function releaseSurplus(address _receiver, uint256 _amount)
+        external
+        onlyOwner
+    {
+        require(
+            _receiver != address(0),
+            "PeriodicTokenVesting#releaseSurplus: INVALID_RECEIVER"
+        );
+        
+        require(
+            _amount != 0,
+            "PeriodicTokenVesting#releaseSurplus: INVALID_AMOUNT"
+        );
+
         uint256 nonSurplus;
 
         if (revokedTimestamp != 0) {
@@ -239,19 +257,24 @@ contract PeriodicTokenVesting is OwnableUpgradeable {
 
         uint256 surplus = contractBalance - nonSurplus;
 
-        emit ReleasedSurplus(_msgSender(), surplus);
+        require(
+            _amount <= surplus,
+            "PeriodicTokenVesting#releaseSurplus: INVALID_AMOUNT"
+        );
 
-        token.transfer(owner(), surplus);
+        emit ReleasedSurplus(_receiver, _amount);
+
+        token.transfer(_receiver, _amount);
     }
 
-    function _setBeneficiary(address _newBeneficiary) private {
+    function _setBeneficiary(address _beneficiary) private {
         require(
-            _newBeneficiary != address(0),
+            _beneficiary != address(0),
             "PeriodicTokenVesting#_setBeneficiary: INVALID_BENEFICIARY"
         );
 
-        beneficiary = _newBeneficiary;
+        beneficiary = _beneficiary;
 
-        emit BeneficiaryUpdated(_msgSender(), _newBeneficiary);
+        emit BeneficiaryUpdated(_beneficiary);
     }
 }
