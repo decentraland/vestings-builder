@@ -122,6 +122,19 @@ contract PeriodicTokenVesting is OwnableUpgradeable {
         return getVested() - released;
     }
 
+    /// @notice Get the total amount of tokens that will be vested in this contract.
+    /// @return The total amount of tokens that will be vested in this contract.
+    function getTotal() public view returns (uint256) {
+        uint256 total;
+
+        // Sum all the tokens vested per period to obtain the total amount.
+        for (uint i = 0; i < vestedPerPeriod.length; i++) {
+            total += vestedPerPeriod[i];
+        }
+
+        return total;
+    }
+
     /// @notice Get the amount of tokens currently vested.
     /// @return The amount of tokens currently vested.
     function getVested() public view returns (uint256) {
@@ -257,9 +270,7 @@ contract PeriodicTokenVesting is OwnableUpgradeable {
             nonSurplus = getVested();
         // If not, the total amount of the vesting is not surplus.
         } else {
-            for (uint i = 0; i < vestedPerPeriod.length; i++) {
-                nonSurplus += vestedPerPeriod[i];
-            }
+            nonSurplus = getTotal();
         }
 
         nonSurplus -= released;

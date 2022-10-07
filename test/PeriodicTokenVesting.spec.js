@@ -136,6 +136,16 @@ describe("PeriodicTokenVesting", () => {
     });
   });
 
+  describe("getTotal", () => {
+    beforeEach(async () => {
+      await vesting.initialize(...initParamsList);
+    });
+
+    it("should return the total amount of tokens to be vested by the contract", async () => {
+      expect(await vesting.getTotal()).to.equal(totalToVest);
+    });
+  });
+
   describe("setBeneficiary", () => {
     beforeEach(async () => {
       await vesting.initialize(...initParamsList);
