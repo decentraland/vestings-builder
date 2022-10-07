@@ -34,6 +34,7 @@ contract PeriodicTokenVesting is OwnableUpgradeable {
     }
 
     constructor() {
+        // Prevent the implementation from being initialized.
         _disableInitializers();
     }
 
@@ -59,13 +60,8 @@ contract PeriodicTokenVesting is OwnableUpgradeable {
             "PeriodicTokenVesting#initialize: INVALID_TOKEN"
         );
 
-        // Initialize Ownable
         __Ownable_init();
-
-        // Set the new owner (Checks that _owner != address(0) internally)
         transferOwnership(_owner);
-
-        // Set the rest of the variables
         _setBeneficiary(_beneficiary);
         token = IERC20(_token);
         isRevocable = _isRevocable;
@@ -75,31 +71,37 @@ contract PeriodicTokenVesting is OwnableUpgradeable {
     }
 
     /// @notice Get the beneficiary of the vested tokens.
+    /// @return The beneficiary of the vested tokens.
     function getBeneficiary() external view returns (address) {
         return beneficiary;
     }
 
     /// @notice Get the token to vest.
+    /// @return The token to vest.
     function getToken() external view returns (IERC20) {
         return token;
     }
 
     /// @notice Get whether the vesting contract is revocable.
+    /// @return Whether the vesting contract is revocable.
     function getIsRevocable() external view returns (bool) {
         return isRevocable;
     }
 
     /// @notice Get the start time of the vesting.
+    /// @return The start time of the vesting.
     function getStart() external view returns (uint256) {
         return start;
     }
 
-    /// @notice Get the duration of each period.
+    /// @notice Get the duration of a period.
+    /// @return The duration of a period.
     function getPeriodDuration() external view returns (uint256) {
         return periodDuration;
     }
 
     /// @notice Get the amount of tokens vested per period.
+    /// @return The amount of tokens vested per period.
     function getVestedPerPeriod() external view returns (uint256[] memory) {
         return vestedPerPeriod;
     }
@@ -115,32 +117,40 @@ contract PeriodicTokenVesting is OwnableUpgradeable {
     }
 
     /// @notice Get the amount of releasable tokens.
+    /// @return The amount of releasable tokens.
     function getReleasable() public view returns (uint256) {
         return getVested() - released;
     }
 
     /// @notice Get the amount of tokens currently vested.
+    /// @return The amount of tokens currently vested.
     function getVested() public view returns (uint256) {
+        // The current block timestamp will be used to calculate how much is vested until now.
         uint256 timestamp = block.timestamp;
 
+        // If the vesting was revoked, use the revoke timestamp instead to check how much was vested up to that time.
         if (revokedTimestamp != 0) {
             timestamp = revokedTimestamp;
         }
 
+        // If the current timestamp ot the revoke was previous to the start time, nothing is vested.
         if (timestamp < start) {
             return 0;
         }
 
         uint256 delta = timestamp - start;
+        // As arithmetic operations always return truncated values, we can obtain the number of periods this way
         uint256 elapsedPeriods = delta / periodDuration;
         uint256 vestedPerPeriodLength = vestedPerPeriod.length;
 
+        // Use the defined periods length if more periods have passed to prevent the for loop from accessing undeclared entries.
         if (elapsedPeriods > vestedPerPeriodLength) {
             elapsedPeriods = vestedPerPeriodLength;
         }
 
         uint256 vested;
 
+        // Sum the vested amount for each period that has passed.
         for (uint i = 0; i < elapsedPeriods; i++) {
             vested += vestedPerPeriod[i];
         }
@@ -149,13 +159,14 @@ contract PeriodicTokenVesting is OwnableUpgradeable {
     }
 
     /// @notice Set a new Beneficiary.
-    /// @param _newBeneficiary The new beneficiary of the vested tokens.
+    /// @param _newBeneficiary The new beneficiary.
     function setBeneficiary(address _newBeneficiary) external onlyBeneficiary {
         _setBeneficiary(_newBeneficiary);
     }
 
     /// @notice Transfer vested tokens to a different address.
-    /// @param _receiver The address to transfer the vested tokens to.
+    /// @param _receiver The address that will receive the released tokens.
+    /// @param _amount The amount of tokens to release.
     function release(address _receiver, uint256 _amount)
         external
         onlyBeneficiary
@@ -194,7 +205,7 @@ contract PeriodicTokenVesting is OwnableUpgradeable {
 
     /// @notice Transfer a certain amount of foreign tokens to an address.
     /// @param _token The foreign token to release.
-    /// @param _receiver The address to transfer the foreign tokens to.
+    /// @param _receiver The address that will receive the released tokens.
     /// @param _amount The amount of foreign tokens to release.
     function releaseForeignToken(
         IERC20 _token,
@@ -222,6 +233,8 @@ contract PeriodicTokenVesting is OwnableUpgradeable {
     }
 
     /// @notice Transfer any surplus tokens from the contract to the owner.
+    /// @param _receiver The address that will receive the surplus tokens.
+    /// @param _amount The amount of surplus tokens to release.
     function releaseSurplus(address _receiver, uint256 _amount)
         external
         onlyOwner
@@ -236,10 +249,13 @@ contract PeriodicTokenVesting is OwnableUpgradeable {
             "PeriodicTokenVesting#releaseSurplus: INVALID_AMOUNT"
         );
 
+        // The amount of tokens that correspond to the vesting and cannot be released as surplus.
         uint256 nonSurplus;
 
+        // If the vesting was revoked, only the amount vested up to the revoke time is non surplus.
         if (revokedTimestamp != 0) {
             nonSurplus = getVested();
+        // If not, the total amount of the vesting is not surplus.
         } else {
             for (uint i = 0; i < vestedPerPeriod.length; i++) {
                 nonSurplus += vestedPerPeriod[i];
