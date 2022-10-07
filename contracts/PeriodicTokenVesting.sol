@@ -259,7 +259,7 @@ contract PeriodicTokenVesting is OwnableUpgradeable {
 
         require(
             _amount <= surplus,
-            "PeriodicTokenVesting#releaseSurplus: INVALID_AMOUNT"
+            "PeriodicTokenVesting#releaseSurplus: AMOUNT_EXCEEDS_SURPLUS"
         );
 
         emit ReleasedSurplus(_receiver, _amount);

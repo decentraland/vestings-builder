@@ -404,7 +404,7 @@ describe("PeriodicTokenVesting", () => {
       await token.connect(treasury).transfer(vesting.address, totalToVestDoubled);
 
       await expect(vesting.connect(owner).releaseSurplus(extra.address, totalToVest.add("1"))).to.be.revertedWith(
-        "PeriodicTokenVesting#releaseSurplus: INVALID_AMOUNT"
+        "PeriodicTokenVesting#releaseSurplus: AMOUNT_EXCEEDS_SURPLUS"
       );
     });
 
