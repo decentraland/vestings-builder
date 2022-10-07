@@ -268,8 +268,9 @@ contract PeriodicTokenVesting is OwnableUpgradeable {
         // If the vesting was revoked, only the amount vested up to the revoke time is non surplus.
         if (revokedTimestamp != 0) {
             nonSurplus = getVested();
+        }
         // If not, the total amount of the vesting is not surplus.
-        } else {
+        else {
             nonSurplus = getTotal();
         }
 
