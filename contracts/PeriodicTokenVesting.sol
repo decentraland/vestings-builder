@@ -15,7 +15,7 @@ contract PeriodicTokenVesting is OwnableUpgradeable {
     uint256 private released;
     uint256 private revokedTimestamp;
 
-    event BeneficiaryUpdated(address indexed _to);
+    event BeneficiaryUpdated(address indexed _newBeneficiary);
     event Revoked();
     event Released(address indexed _receiver, uint256 _amount);
     event ReleasedForeign(
@@ -149,9 +149,9 @@ contract PeriodicTokenVesting is OwnableUpgradeable {
     }
 
     /// @notice Set a new Beneficiary.
-    /// @param _to The new beneficiary of the vested tokens.
-    function setBeneficiary(address _to) external onlyBeneficiary {
-        _setBeneficiary(_to);
+    /// @param _newBeneficiary The new beneficiary of the vested tokens.
+    function setBeneficiary(address _newBeneficiary) external onlyBeneficiary {
+        _setBeneficiary(_newBeneficiary);
     }
 
     /// @notice Transfer vested tokens to a different address.
@@ -230,7 +230,7 @@ contract PeriodicTokenVesting is OwnableUpgradeable {
             _receiver != address(0),
             "PeriodicTokenVesting#releaseSurplus: INVALID_RECEIVER"
         );
-        
+
         require(
             _amount != 0,
             "PeriodicTokenVesting#releaseSurplus: INVALID_AMOUNT"
