@@ -131,7 +131,25 @@ describe("PeriodicTokenVesting", () => {
       initParamsList = Object.values(initParams);
 
       await expect(vesting.initialize(...initParamsList)).to.be.revertedWith(
-        "PeriodicTokenVesting#initialize: INVALID_TOKEN"
+        "PeriodicTokenVesting#_setToken: INVALID_TOKEN"
+      );
+    });
+
+    it("reverts when period duration is 0", async () => {
+      initParams.periodDuration = 0;
+      initParamsList = Object.values(initParams);
+
+      await expect(vesting.initialize(...initParamsList)).to.be.revertedWith(
+        "PeriodicTokenVesting#_setPeriodDuration: INVALID_PERIOD_DURATION"
+      );
+    });
+
+    it("reverts when vested per period length is 0", async () => {
+      initParams.vestedPerPeriod = [];
+      initParamsList = Object.values(initParams);
+
+      await expect(vesting.initialize(...initParamsList)).to.be.revertedWith(
+        "PeriodicTokenVesting#_setVestedPerPeriod: INVALID_VESTED_PER_PERIOD_LENGTH"
       );
     });
   });

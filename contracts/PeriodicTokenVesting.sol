@@ -55,19 +55,17 @@ contract PeriodicTokenVesting is OwnableUpgradeable {
         uint256 _periodDuration,
         uint256[] calldata _vestedPerPeriod
     ) external initializer {
-        require(
-            _token != address(0),
-            "PeriodicTokenVesting#initialize: INVALID_TOKEN"
-        );
-
+        // Set the owner using the OwnableUpgradeable functions.
         __Ownable_init();
         transferOwnership(_owner);
+
+        // Set the rest of the initialization parameters
         _setBeneficiary(_beneficiary);
-        token = IERC20(_token);
+        _setToken(_token);
+        _setPeriodDuration(_periodDuration);
+        _setVestedPerPeriod(_vestedPerPeriod);
         isRevocable = _isRevocable;
         start = _start;
-        periodDuration = _periodDuration;
-        vestedPerPeriod = _vestedPerPeriod;
     }
 
     /// @notice Get the beneficiary of the vested tokens.
@@ -304,5 +302,32 @@ contract PeriodicTokenVesting is OwnableUpgradeable {
         beneficiary = _beneficiary;
 
         emit BeneficiaryUpdated(_beneficiary);
+    }
+
+    function _setToken(address _token) private {
+        require(
+            _token != address(0),
+            "PeriodicTokenVesting#_setToken: INVALID_TOKEN"
+        );
+
+        token = IERC20(_token);
+    }
+
+    function _setPeriodDuration(uint256 _periodDuration) private {
+        require(
+            _periodDuration != 0,
+            "PeriodicTokenVesting#_setPeriodDuration: INVALID_PERIOD_DURATION"
+        );
+
+        periodDuration = _periodDuration;
+    }
+
+    function _setVestedPerPeriod(uint256[] calldata _vestedPerPeriod) private {
+        require(
+            _vestedPerPeriod.length != 0,
+            "PeriodicTokenVesting#_setVestedPerPeriod: INVALID_VESTED_PER_PERIOD_LENGTH"
+        );
+
+        vestedPerPeriod = _vestedPerPeriod;
     }
 }
