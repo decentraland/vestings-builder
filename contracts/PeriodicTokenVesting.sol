@@ -3,9 +3,12 @@
 pragma solidity ^0.8.17;
 
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import "@openzeppelin/contracts/interfaces/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 contract PeriodicTokenVesting is OwnableUpgradeable {
+    using SafeERC20 for IERC20;
+
     address private beneficiary;
     IERC20 private token;
     bool private isRevocable;
@@ -198,7 +201,7 @@ contract PeriodicTokenVesting is OwnableUpgradeable {
 
         emit Released(_receiver, _amount);
 
-        token.transfer(_receiver, _amount);
+        token.safeTransfer(_receiver, _amount);
     }
 
     /// @notice Revokes the vesting.
@@ -240,7 +243,7 @@ contract PeriodicTokenVesting is OwnableUpgradeable {
 
         emit ReleasedForeign(_receiver, _token, _amount);
 
-        _token.transfer(_receiver, _amount);
+        _token.safeTransfer(_receiver, _amount);
     }
 
     /// @notice Transfer any surplus tokens from the contract to the owner.
@@ -290,7 +293,7 @@ contract PeriodicTokenVesting is OwnableUpgradeable {
 
         emit ReleasedSurplus(_receiver, _amount);
 
-        token.transfer(_receiver, _amount);
+        token.safeTransfer(_receiver, _amount);
     }
 
     function _setBeneficiary(address _beneficiary) private {
