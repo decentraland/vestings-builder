@@ -13,10 +13,13 @@ contract PeriodicTokenVesting is OwnableUpgradeable {
     uint256 private periodDuration;
     uint256[] private vestedPerPeriod;
     uint256 private released;
+    uint256 private pausedTimestamp;
     uint256 private revokedTimestamp;
 
     event BeneficiaryUpdated(address indexed _newBeneficiary);
     event Revoked();
+    event Paused();
+    event Resumed();
     event Released(address indexed _receiver, uint256 _amount);
     event ReleasedForeign(
         address indexed _receiver,
@@ -114,6 +117,11 @@ contract PeriodicTokenVesting is OwnableUpgradeable {
         return revokedTimestamp;
     }
 
+    /// @notice Get the timestamp when the vesting was revoked.
+    function getPausedTimestamp() external view returns (uint256) {
+        return pausedTimestamp;
+    }
+
     /// @notice Get the amount of releasable tokens.
     /// @return The amount of releasable tokens.
     function getReleasable() public view returns (uint256) {
@@ -133,18 +141,39 @@ contract PeriodicTokenVesting is OwnableUpgradeable {
         return total;
     }
 
+    /// @notice Allows the owner to pause the vesting.
+    function pause() onlyOwner public {
+        require(isRevocable, "PeriodicTokenVesting#pause: NON_REVOCABLE");
+        require(pausedTimestamp == 0, "PeriodicTokenVesting#pause: ALREADY_PAUSED");
+        require(revokedTimestamp == 0, "PeriodicTokenVesting#pause: ALREADY_REVOKED");
+        pausedTimestamp = now;
+        emit Paused();
+    }
+
+    /// @notice Allows the owner to resume the vesting without delay.
+    function resume() onlyOwner public {
+        require(pausedTimestamp != 0, "PeriodicTokenVesting#unpause: NOT_PAUSED");
+        require(revokedTimestamp == 0, "PeriodicTokenVesting#unpause: ALREADY_REVOKED");
+        pausedTimestamp = 0;
+        emit Resumed();
+    }
+
     /// @notice Get the amount of tokens currently vested.
     /// @return The amount of tokens currently vested.
     function getVested() public view returns (uint256) {
         // The current block timestamp will be used to calculate how much is vested until now.
         uint256 timestamp = block.timestamp;
 
-        // If the vesting was revoked, use the revoke timestamp instead to check how much was vested up to that time.
-        if (revokedTimestamp != 0) {
+        // If the vesting is paused, use the paused timestamp instead of current time.
+        if (pausedTimestamp != 0) {
+            timestamp = pausedTimestamp;
+        }
+        // If the vesting was revoked, use the revoke timestamp to check how much was vested up to that time.
+        else (revokedTimestamp != 0) {
             timestamp = revokedTimestamp;
         }
 
-        // If the current timestamp ot the revoke was previous to the start time, nothing is vested.
+        // If the current timestamp is previous to the start time, nothing is vested.
         if (timestamp < start) {
             return 0;
         }
