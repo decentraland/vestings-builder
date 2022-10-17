@@ -13,6 +13,7 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
     address private beneficiary;
     IERC20 private token;
     bool private isRevocable;
+    bool private isPausable;
     uint256 private start;
     uint256 private periodDuration;
     uint256[] private vestedPerPeriod;
@@ -57,6 +58,7 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
     /// @param _beneficiary The beneficiary of the vested tokens.
     /// @param _token The token to vest.
     /// @param _isRevocable Whether the vesting contract is revocable.
+    /// @param _isPausable Whether the vesting contract is pausable.
     /// @param _start The start time of the vesting.
     /// @param _periodDuration The duration of each period.
     /// @param _vestedPerPeriod The amount of tokens vested per period.
@@ -65,6 +67,7 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
         address _beneficiary,
         address _token,
         bool _isRevocable,
+        bool _isPausable,
         uint256 _start,
         uint256 _periodDuration,
         uint256[] calldata _vestedPerPeriod
@@ -82,6 +85,7 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
         _setPeriodDuration(_periodDuration);
         _setVestedPerPeriod(_vestedPerPeriod);
         isRevocable = _isRevocable;
+        isPausable = _isPausable;
         start = _start;
     }
 
@@ -101,6 +105,12 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
     /// @return Whether the vesting contract is revocable.
     function getIsRevocable() external view returns (bool) {
         return isRevocable;
+    }
+
+    /// @notice Get whether the vesting contract is pausable.
+    /// @return Whether the vesting contract is pausable.
+    function getIsPausable() external view returns (bool) {
+        return isPausable;
     }
 
     /// @notice Get the start time of the vesting.
@@ -321,6 +331,8 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
     /// @notice Pause the vesting.
     /// Similar to revoking the vesting but reversible.
     function pause() external onlyOwner whenNotRevoked {
+        require(isPausable, "PeriodicTokenVesting#pause: NON_PAUSABLE");
+
         stopTimestamp = block.timestamp;
 
         _pause();

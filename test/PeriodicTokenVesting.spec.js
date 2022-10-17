@@ -65,6 +65,7 @@ describe("PeriodicTokenVesting", () => {
       beneficiary: beneficiary.address,
       token: token.address,
       revocable: true,
+      pausable: true,
       start: await helpers.time.latest(),
       periodDuration: 7889400,
       vestedPerPeriod,
@@ -79,6 +80,7 @@ describe("PeriodicTokenVesting", () => {
       expect(await vesting.getBeneficiary()).to.equal(AddressZero);
       expect(await vesting.getToken()).to.equal(AddressZero);
       expect(await vesting.getIsRevocable()).to.be.false;
+      expect(await vesting.getIsPausable()).to.be.false;
       expect(await vesting.getStart()).to.equal(AddressZero);
       expect(await vesting.getPeriodDuration()).to.equal(AddressZero);
       expect(await vesting.getVestedPerPeriod()).to.be.empty;
@@ -91,6 +93,7 @@ describe("PeriodicTokenVesting", () => {
       expect(await vesting.getBeneficiary()).to.equal(initParams.beneficiary);
       expect(await vesting.getToken()).to.equal(initParams.token);
       expect(await vesting.getIsRevocable()).to.equal(initParams.revocable);
+      expect(await vesting.getIsPausable()).to.equal(initParams.pausable);
       expect(await vesting.getStart()).to.equal(initParams.start);
       expect(await vesting.getPeriodDuration()).to.equal(initParams.periodDuration);
       expect(await vesting.getVestedPerPeriod()).to.have.same.deep.members(vestedPerPeriod);
@@ -522,7 +525,11 @@ describe("PeriodicTokenVesting", () => {
   });
 
   describe("pause", () => {
+    let preInitSnapshot;
+
     beforeEach(async () => {
+      preInitSnapshot = await helpers.takeSnapshot();
+
       await vesting.initialize(...initParamsList);
     });
 
@@ -562,6 +569,17 @@ describe("PeriodicTokenVesting", () => {
       await expect(vesting.connect(owner).pause()).to.be.revertedWith(
         "PeriodicTokenVesting#whenNotRevoked: IS_REVOKED"
       );
+    });
+
+    it("reverts when the vesting is non pausable", async () => {
+      await preInitSnapshot.restore();
+
+      initParams.pausable = false;
+      initParamsList = Object.values(initParams);
+
+      await vesting.initialize(...initParamsList);
+
+      await expect(vesting.connect(owner).pause()).to.be.revertedWith("PeriodicTokenVesting#pause: NON_PAUSABLE");
     });
   });
 
