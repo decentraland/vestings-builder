@@ -465,6 +465,14 @@ describe("PeriodicTokenVesting", () => {
     it("reverts when the caller is not the owner", async () => {
       await expect(vesting.connect(extra).pause()).to.be.revertedWith("Ownable: caller is not the owner");
     });
+
+    it("reverts when the vesting is revoked", async () => {
+      await vesting.connect(owner).revoke();
+
+      await expect(vesting.connect(owner).pause()).to.be.revertedWith(
+        "PeriodicTokenVesting#whenNotRevoked: IS_REVOKED"
+      );
+    });
   });
 
   describe("unpause", () => {
@@ -488,6 +496,14 @@ describe("PeriodicTokenVesting", () => {
 
     it("reverts when the caller is not the owner", async () => {
       await expect(vesting.connect(extra).unpause()).to.be.revertedWith("Ownable: caller is not the owner");
+    });
+
+    it("reverts when the vesting is revoked", async () => {
+      await vesting.connect(owner).revoke();
+
+      await expect(vesting.connect(owner).unpause()).to.be.revertedWith(
+        "PeriodicTokenVesting#whenNotRevoked: IS_REVOKED"
+      );
     });
   });
 });

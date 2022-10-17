@@ -37,6 +37,14 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
         _;
     }
 
+    modifier whenNotRevoked() {
+        require(
+            revokedTimestamp == 0,
+            "PeriodicTokenVesting#whenNotRevoked: IS_REVOKED"
+        );
+        _;
+    }
+
     constructor() {
         // Prevent the implementation from being initialized.
         _disableInitializers();
@@ -302,12 +310,12 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
 
     /// @notice Pause the vesting.
     /// Similar to revoking the vesting but reversible.
-    function pause() external onlyOwner {
+    function pause() external onlyOwner whenNotRevoked {
         _pause();
     }
 
     /// @notice Unpause the vesting.
-    function unpause() external onlyOwner {
+    function unpause() external onlyOwner whenNotRevoked {
         _unpause();
     }
 
