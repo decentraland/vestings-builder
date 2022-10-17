@@ -129,16 +129,16 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
         return revokedTimestamp;
     }
 
-    /// @notice Get the amount of releasable tokens.
-    /// @return The amount of releasable tokens.
-    function getReleasable() public view returns (uint256) {
-        return getVested() - released;
-    }
-
     /// @notice Get if the vesting is paused.
     /// @return If the vesting is paused.
     function getIsPaused() external view returns (bool) {
         return paused();
+    }
+
+    /// @notice Get the amount of releasable tokens.
+    /// @return The amount of releasable tokens.
+    function getReleasable() public view returns (uint256) {
+        return getVested() - released;
     }
 
     /// @notice Get the total amount of tokens that will be vested in this contract.
