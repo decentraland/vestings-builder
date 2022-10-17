@@ -130,6 +130,7 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
     }
 
     /// @notice Get if the vesting is paused.
+    /// @dev Returns the same PausableUpgradeable.paused() but the function has a name like the rest of the getters.
     /// @return If the vesting is paused.
     function getIsPaused() external view returns (bool) {
         return paused();
