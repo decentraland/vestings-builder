@@ -29,6 +29,7 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
     );
     event ReleasedSurplus(address indexed _receiver, uint256 _amount);
 
+    /// @dev Indicates that only the beneficiary can call the function.
     modifier onlyBeneficiary() {
         require(
             _msgSender() == beneficiary,
@@ -37,6 +38,7 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
         _;
     }
 
+    /// @dev Indicates that the function can be called when the contract is not revoked.
     modifier whenNotRevoked() {
         require(
             !getIsRevoked(),
