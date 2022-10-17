@@ -456,6 +456,10 @@ describe("PeriodicTokenVesting", () => {
       expect(await vesting.paused()).to.be.true;
     });
 
+    it("should emit a Paused event", async () => {
+      await expect(vesting.connect(owner).pause()).to.emit(vesting, "Paused").withArgs(owner.address);
+    });
+
     it("reverts when the contract is already paused", async () => {
       await vesting.connect(owner).pause();
 
@@ -488,6 +492,12 @@ describe("PeriodicTokenVesting", () => {
       await vesting.connect(owner).unpause();
 
       expect(await vesting.paused()).to.be.false;
+    });
+
+    it("should emit an Unpaused event", async () => {
+      await vesting.connect(owner).pause();
+
+      await expect(vesting.connect(owner).unpause()).to.emit(vesting, "Unpaused").withArgs(owner.address);
     });
 
     it("reverts when the contract is not paused", async () => {
