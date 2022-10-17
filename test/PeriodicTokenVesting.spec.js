@@ -527,11 +527,11 @@ describe("PeriodicTokenVesting", () => {
     });
 
     it("should pause the vesting", async () => {
-      expect(await vesting.getIsPaused()).to.be.false;
+      expect(await vesting.paused()).to.be.false;
 
       await vesting.connect(owner).pause();
 
-      expect(await vesting.getIsPaused()).to.be.true;
+      expect(await vesting.paused()).to.be.true;
     });
 
     it("should emit a Paused event", async () => {
@@ -573,11 +573,11 @@ describe("PeriodicTokenVesting", () => {
     it("should unpause the vesting", async () => {
       await vesting.connect(owner).pause();
 
-      expect(await vesting.getIsPaused()).to.be.true;
+      expect(await vesting.paused()).to.be.true;
 
       await vesting.connect(owner).unpause();
 
-      expect(await vesting.getIsPaused()).to.be.false;
+      expect(await vesting.paused()).to.be.false;
     });
 
     it("should emit an Unpaused event", async () => {
