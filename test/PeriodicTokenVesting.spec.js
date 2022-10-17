@@ -442,4 +442,52 @@ describe("PeriodicTokenVesting", () => {
       );
     });
   });
+
+  describe("pause", () => {
+    beforeEach(async () => {
+      await vesting.initialize(...initParamsList);
+    });
+
+    it("should pause the vesting", async () => {
+      expect(await vesting.paused()).to.be.false;
+
+      await vesting.connect(owner).pause();
+
+      expect(await vesting.paused()).to.be.true;
+    });
+
+    it("reverts when the contract is already paused", async () => {
+      await vesting.connect(owner).pause();
+
+      await expect(vesting.connect(owner).pause()).to.be.revertedWith("Pausable: paused");
+    });
+
+    it("reverts when the caller is not the owner", async () => {
+      await expect(vesting.connect(extra).pause()).to.be.revertedWith("Ownable: caller is not the owner");
+    });
+  });
+
+  describe("unpause", () => {
+    beforeEach(async () => {
+      await vesting.initialize(...initParamsList);
+    });
+
+    it("should unpause the vesting", async () => {
+      await vesting.connect(owner).pause();
+
+      expect(await vesting.paused()).to.be.true;
+
+      await vesting.connect(owner).unpause();
+
+      expect(await vesting.paused()).to.be.false;
+    });
+
+    it("reverts when the contract is not paused", async () => {
+      await expect(vesting.connect(owner).unpause()).to.be.revertedWith("Pausable: not paused");
+    });
+
+    it("reverts when the caller is not the owner", async () => {
+      await expect(vesting.connect(extra).unpause()).to.be.revertedWith("Ownable: caller is not the owner");
+    });
+  });
 });
