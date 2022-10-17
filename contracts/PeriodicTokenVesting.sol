@@ -215,9 +215,9 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
             "PeriodicTokenVesting#release: INVALID_RECEIVER"
         );
 
-        uint256 releasable = getReleasable();
-
         require(_amount > 0, "PeriodicTokenVesting#release: INVALID_AMOUNT");
+
+        uint256 releasable = getReleasable();
 
         require(
             _amount <= releasable,
