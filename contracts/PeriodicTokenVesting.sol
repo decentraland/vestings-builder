@@ -17,7 +17,7 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
     uint256 private periodDuration;
     uint256[] private vestedPerPeriod;
     uint256 private released;
-    uint256 private revokedTimestamp;
+    uint256 private stopTimestamp;
 
     event BeneficiaryUpdated(address indexed _newBeneficiary);
     event Revoked();
@@ -39,7 +39,7 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
 
     modifier whenNotRevoked() {
         require(
-            revokedTimestamp == 0,
+            !getIsRevoked(),
             "PeriodicTokenVesting#whenNotRevoked: IS_REVOKED"
         );
         _;
@@ -125,8 +125,8 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
     }
 
     /// @notice Get the timestamp when the vesting was revoked.
-    function getRevokedTimestamp() external view returns (uint256) {
-        return revokedTimestamp;
+    function getStopTimestamp() external view returns (uint256) {
+        return stopTimestamp;
     }
 
     /// @notice Get if the vesting is paused.
@@ -134,6 +134,12 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
     /// @return If the vesting is paused.
     function getIsPaused() external view returns (bool) {
         return paused();
+    }
+
+    /// @notice Get if the vesting is revoked.
+    /// @return If the vesting is revoked.
+    function getIsRevoked() public view returns (bool) {
+        return !paused() && stopTimestamp != 0;
     }
 
     /// @notice Get the amount of releasable tokens.
@@ -162,8 +168,8 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
         uint256 timestamp = block.timestamp;
 
         // If the vesting was revoked, use the revoke timestamp instead to check how much was vested up to that time.
-        if (revokedTimestamp != 0) {
-            timestamp = revokedTimestamp;
+        if (stopTimestamp != 0) {
+            timestamp = stopTimestamp;
         }
 
         // If the current timestamp ot the revoke was previous to the start time, nothing is vested.
@@ -211,9 +217,11 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
 
         uint256 releasable = getReleasable();
 
+        require(_amount > 0, "PeriodicTokenVesting#release: INVALID_AMOUNT");
+
         require(
-            _amount > 0 && _amount <= releasable,
-            "PeriodicTokenVesting#release: INVALID_AMOUNT"
+            _amount <= releasable,
+            "PeriodicTokenVesting#release: AMOUNT_TOO_LARGE"
         );
 
         released += _amount;
@@ -224,14 +232,14 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
     }
 
     /// @notice Revokes the vesting.
-    function revoke() external onlyOwner {
+    function revoke() external onlyOwner whenNotRevoked {
         require(isRevocable, "PeriodicTokenVesting#revoke: NON_REVOCABLE");
-        require(
-            revokedTimestamp == 0,
-            "PeriodicTokenVesting#revoke: ALREADY_REVOKED"
-        );
 
-        revokedTimestamp = block.timestamp;
+        if (paused()) {
+            _unpause();
+        }
+
+        stopTimestamp = block.timestamp;
 
         emit Revoked();
     }
@@ -286,7 +294,7 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
         uint256 nonSurplus;
 
         // If the vesting was revoked, only the amount vested up to the revoke time is non surplus.
-        if (revokedTimestamp != 0) {
+        if (stopTimestamp != 0) {
             nonSurplus = getVested();
         }
         // If not, the total amount of the vesting is not surplus.
@@ -318,11 +326,15 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
     /// @notice Pause the vesting.
     /// Similar to revoking the vesting but reversible.
     function pause() external onlyOwner whenNotRevoked {
+        stopTimestamp = block.timestamp;
+
         _pause();
     }
 
     /// @notice Unpause the vesting.
     function unpause() external onlyOwner whenNotRevoked {
+        stopTimestamp = 0;
+
         _unpause();
     }
 

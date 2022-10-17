@@ -201,7 +201,7 @@ describe("PeriodicTokenVesting", () => {
       await vesting.initialize(...initParamsList);
     });
 
-    it("should release the correct amount to the receiver", async () => {
+    it("should be able to release all tokens once all periods elapse", async () => {
       await token.connect(treasury).transfer(vesting.address, totalToVest);
 
       await helpers.time.setNextBlockTimestamp(
@@ -211,12 +211,77 @@ describe("PeriodicTokenVesting", () => {
       expect(await token.balanceOf(vesting.address)).to.equal(totalToVest);
       expect(await token.balanceOf(extra.address)).to.equal(Zero);
 
-      const releaseAmount = parseEther("100");
+      await vesting.connect(beneficiary).release(extra.address, totalToVest);
 
-      await vesting.connect(beneficiary).release(extra.address, releaseAmount);
+      expect(await token.balanceOf(vesting.address)).to.equal(Zero);
+      expect(await token.balanceOf(extra.address)).to.equal(totalToVest);
+    });
 
-      expect(await token.balanceOf(vesting.address)).to.equal(totalToVest.sub(releaseAmount));
-      expect(await token.balanceOf(extra.address)).to.equal(releaseAmount);
+    it("should be able to release tokens vested up to the revoke", async () => {
+      await token.connect(treasury).transfer(vesting.address, totalToVest);
+
+      await helpers.time.setNextBlockTimestamp(
+        initParams.start + initParams.periodDuration * (initParams.vestedPerPeriod.length / 2)
+      );
+
+      await helpers.mine();
+
+      const vestedUpToRevoke = await vesting.connect(owner).getVested();
+
+      await vesting.connect(owner).revoke();
+
+      await helpers.time.setNextBlockTimestamp(
+        initParams.start + initParams.periodDuration * initParams.vestedPerPeriod.length
+      );
+
+      expect(await token.balanceOf(vesting.address)).to.equal(totalToVest);
+      expect(await token.balanceOf(extra.address)).to.equal(Zero);
+
+      await expect(vesting.connect(beneficiary).release(extra.address, vestedUpToRevoke.add("1"))).to.be.revertedWith(
+        "PeriodicTokenVesting#release: AMOUNT_TOO_LARGE"
+      );
+
+      await vesting.connect(beneficiary).release(extra.address, vestedUpToRevoke);
+
+      expect(await token.balanceOf(vesting.address)).to.equal(totalToVest.sub(vestedUpToRevoke));
+      expect(await token.balanceOf(extra.address)).to.equal(vestedUpToRevoke);
+    });
+
+    it("should be able to release tokens vested up to the paused timestamp and release all when unpaused and all periods have elapsed", async () => {
+      await token.connect(treasury).transfer(vesting.address, totalToVest);
+
+      await helpers.time.setNextBlockTimestamp(
+        initParams.start + initParams.periodDuration * (initParams.vestedPerPeriod.length / 2)
+      );
+
+      await helpers.mine();
+
+      const vestedUpToPause = await vesting.connect(owner).getVested();
+
+      await vesting.connect(owner).pause();
+
+      await helpers.time.setNextBlockTimestamp(
+        initParams.start + initParams.periodDuration * initParams.vestedPerPeriod.length
+      );
+
+      expect(await token.balanceOf(vesting.address)).to.equal(totalToVest);
+      expect(await token.balanceOf(extra.address)).to.equal(Zero);
+
+      await expect(vesting.connect(beneficiary).release(extra.address, vestedUpToPause.add("1"))).to.be.revertedWith(
+        "PeriodicTokenVesting#release: AMOUNT_TOO_LARGE"
+      );
+
+      await vesting.connect(beneficiary).release(extra.address, vestedUpToPause);
+
+      expect(await token.balanceOf(vesting.address)).to.equal(totalToVest.sub(vestedUpToPause));
+      expect(await token.balanceOf(extra.address)).to.equal(vestedUpToPause);
+
+      await vesting.connect(owner).unpause();
+
+      await vesting.connect(beneficiary).release(extra.address, totalToVest.sub(vestedUpToPause));
+
+      expect(await token.balanceOf(vesting.address)).to.equal(Zero);
+      expect(await token.balanceOf(extra.address)).to.equal(totalToVest);
     });
 
     it("should emit a Released event", async () => {
@@ -261,7 +326,7 @@ describe("PeriodicTokenVesting", () => {
       expect(await vesting.getReleasable()).to.equal(totalToVest);
 
       await expect(vesting.connect(beneficiary).release(extra.address, totalToVest.add("1"))).to.be.revertedWith(
-        "PeriodicTokenVesting#release: INVALID_AMOUNT"
+        "PeriodicTokenVesting#release: AMOUNT_TOO_LARGE"
       );
     });
 
@@ -297,16 +362,26 @@ describe("PeriodicTokenVesting", () => {
       await vesting.initialize(...initParamsList);
     });
 
-    it("should update the revoked variable", async () => {
-      expect(await vesting.getRevokedTimestamp()).to.equal(0);
+    it("should update the stop timestamp variable", async () => {
+      expect(await vesting.getStopTimestamp()).to.equal(0);
 
       await vesting.connect(owner).revoke();
 
-      expect(await vesting.getRevokedTimestamp()).to.equal(await helpers.time.latest());
+      expect(await vesting.getStopTimestamp()).to.equal(await helpers.time.latest());
     });
 
     it("should emit a Revoked event", async () => {
       await expect(vesting.connect(owner).revoke()).to.emit(vesting, "Revoked");
+    });
+
+    it("should unpause the vesting", async () => {
+      await vesting.connect(owner).pause();
+
+      expect(await vesting.paused()).to.be.true;
+
+      await vesting.connect(owner).revoke();
+
+      expect(await vesting.paused()).to.be.false;
     });
 
     it("reverts when caller is not the owner", async () => {
@@ -326,7 +401,10 @@ describe("PeriodicTokenVesting", () => {
 
     it("reverts when contract has been already revoked", async () => {
       await vesting.connect(owner).revoke();
-      await expect(vesting.connect(owner).revoke()).to.be.revertedWith("PeriodicTokenVesting#revoke: ALREADY_REVOKED");
+
+      await expect(vesting.connect(owner).revoke()).to.be.revertedWith(
+        "PeriodicTokenVesting#whenNotRevoked: IS_REVOKED"
+      );
     });
   });
 
@@ -460,6 +538,14 @@ describe("PeriodicTokenVesting", () => {
       await expect(vesting.connect(owner).pause()).to.emit(vesting, "Paused").withArgs(owner.address);
     });
 
+    it("should update the stop timestamp", async () => {
+      expect(await vesting.getStopTimestamp()).to.equal(Zero);
+
+      await vesting.connect(owner).pause();
+
+      expect(await vesting.getStopTimestamp()).to.equal(await helpers.time.latest());
+    });
+
     it("reverts when the contract is already paused", async () => {
       await vesting.connect(owner).pause();
 
@@ -498,6 +584,18 @@ describe("PeriodicTokenVesting", () => {
       await vesting.connect(owner).pause();
 
       await expect(vesting.connect(owner).unpause()).to.emit(vesting, "Unpaused").withArgs(owner.address);
+    });
+
+    it("should update the stop timestamp", async () => {
+      expect(await vesting.getStopTimestamp()).to.equal(Zero);
+
+      await vesting.connect(owner).pause();
+
+      expect(await vesting.getStopTimestamp()).to.equal(await helpers.time.latest());
+
+      await vesting.connect(owner).unpause();
+
+      expect(await vesting.getStopTimestamp()).to.equal(Zero);
     });
 
     it("reverts when the contract is not paused", async () => {
