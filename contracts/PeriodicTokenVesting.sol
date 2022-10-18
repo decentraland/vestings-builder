@@ -172,12 +172,12 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
         // The current block timestamp will be used to calculate how much is vested until now.
         uint256 timestamp = block.timestamp;
 
-        // If the vesting was revoked, use the revoke timestamp instead to check how much was vested up to that time.
+        // If the vesting was revoked or paused, use the stop timestamp instead to check how much was vested up to that time.
         if (stopTimestamp != 0) {
             timestamp = stopTimestamp;
         }
 
-        // If the current timestamp ot the revoke was previous to the start time, nothing is vested.
+        // If the current or stop timestamp was previous to the start time, nothing is vested.
         if (timestamp < start) {
             return 0;
         }
