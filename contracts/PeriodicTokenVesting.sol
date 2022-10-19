@@ -302,7 +302,7 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
         if (getIsRevoked()) {
             nonSurplus = getVested();
         }
-        // If not, the total amount of the vesting is not surplus.
+        // If not, even if it is paused, the total amount of the vesting is not surplus.
         else {
             nonSurplus = getTotal();
         }
