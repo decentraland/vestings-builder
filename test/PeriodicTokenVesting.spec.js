@@ -468,13 +468,11 @@ describe("PeriodicTokenVesting", () => {
 
   describe("releaseSurplus", () => {
     let totalToVestDoubled;
-    let releaseAmount;
 
     beforeEach(async () => {
       await vesting.initialize(...initParamsList);
 
       totalToVestDoubled = totalToVest.mul(2);
-      releaseAmount = parseEther("100");
     });
 
     it("should release an amount of surplus tokens to the receiver", async () => {
@@ -483,18 +481,82 @@ describe("PeriodicTokenVesting", () => {
       expect(await token.balanceOf(vesting.address)).to.equal(totalToVestDoubled);
       expect(await token.balanceOf(extra.address)).to.equal(Zero);
 
-      await vesting.connect(owner).releaseSurplus(extra.address, releaseAmount);
+      await vesting.connect(owner).releaseSurplus(extra.address, totalToVest);
 
-      expect(await token.balanceOf(vesting.address)).to.equal(totalToVestDoubled.sub(releaseAmount));
-      expect(await token.balanceOf(extra.address)).to.equal(releaseAmount);
+      expect(await token.balanceOf(vesting.address)).to.equal(totalToVestDoubled.sub(totalToVest));
+      expect(await token.balanceOf(extra.address)).to.equal(totalToVest);
     });
 
     it("should emit a ReleasedSurplus event", async () => {
       await token.connect(treasury).transfer(vesting.address, totalToVestDoubled);
 
-      await expect(vesting.connect(owner).releaseSurplus(extra.address, releaseAmount))
+      await expect(vesting.connect(owner).releaseSurplus(extra.address, totalToVest))
         .to.emit(vesting, "ReleasedSurplus")
-        .withArgs(extra.address, releaseAmount);
+        .withArgs(extra.address, totalToVest);
+    });
+
+    it("should be able to release tokens not vested after revoke as surplus", async () => {
+      await token.connect(treasury).transfer(vesting.address, totalToVestDoubled);
+
+      await helpers.time.setNextBlockTimestamp(
+        initParams.start + initParams.periodDuration * (initParams.vestedPerPeriod.length / 2)
+      );
+
+      await helpers.mine();
+
+      const vestedUpToRevoke = await vesting.getVested();
+
+      await vesting.connect(owner).revoke();
+
+      await helpers.time.setNextBlockTimestamp(
+        initParams.start + initParams.periodDuration * initParams.vestedPerPeriod.length
+      );
+
+      await helpers.mine();
+
+      expect(await vesting.getVested()).to.equal(vestedUpToRevoke);
+
+      const surplusAndRevokedAmount = totalToVestDoubled.sub(vestedUpToRevoke);
+
+      await expect(
+        vesting.connect(owner).releaseSurplus(extra.address, surplusAndRevokedAmount.add("1"))
+      ).to.be.revertedWith("PeriodicTokenVesting#releaseSurplus: AMOUNT_EXCEEDS_SURPLUS");
+
+      await vesting.connect(owner).releaseSurplus(extra.address, surplusAndRevokedAmount);
+
+      expect(await token.balanceOf(vesting.address)).to.equal(totalToVestDoubled.sub(surplusAndRevokedAmount));
+      expect(await token.balanceOf(extra.address)).to.equal(surplusAndRevokedAmount);
+    });
+
+    it("should be able to release only surplus tokens when paused", async () => {
+      await token.connect(treasury).transfer(vesting.address, totalToVestDoubled);
+
+      await helpers.time.setNextBlockTimestamp(
+        initParams.start + initParams.periodDuration * (initParams.vestedPerPeriod.length / 2)
+      );
+
+      await helpers.mine();
+
+      const vestedUpToPause = await vesting.getVested();
+
+      await vesting.connect(owner).pause();
+
+      await helpers.time.setNextBlockTimestamp(
+        initParams.start + initParams.periodDuration * initParams.vestedPerPeriod.length
+      );
+
+      await helpers.mine();
+
+      expect(await vesting.getVested()).to.equal(vestedUpToPause);
+
+      await expect(vesting.connect(owner).releaseSurplus(extra.address, totalToVest.add("1"))).to.be.revertedWith(
+        "PeriodicTokenVesting#releaseSurplus: AMOUNT_EXCEEDS_SURPLUS"
+      );
+
+      await vesting.connect(owner).releaseSurplus(extra.address, totalToVest);
+
+      expect(await token.balanceOf(vesting.address)).to.equal(totalToVestDoubled.sub(totalToVest));
+      expect(await token.balanceOf(extra.address)).to.equal(totalToVest);
     });
 
     it("reverts when amount is 0", async () => {
@@ -504,7 +566,7 @@ describe("PeriodicTokenVesting", () => {
     });
 
     it("reverts when receiver is 0x0", async () => {
-      await expect(vesting.connect(owner).releaseSurplus(AddressZero, releaseAmount)).to.be.revertedWith(
+      await expect(vesting.connect(owner).releaseSurplus(AddressZero, totalToVest)).to.be.revertedWith(
         "PeriodicTokenVesting#releaseSurplus: INVALID_RECEIVER"
       );
     });
@@ -518,7 +580,7 @@ describe("PeriodicTokenVesting", () => {
     });
 
     it("reverts when the caller is not the owner", async () => {
-      await expect(vesting.connect(extra).releaseSurplus(extra.address, releaseAmount)).to.be.revertedWith(
+      await expect(vesting.connect(extra).releaseSurplus(extra.address, totalToVest)).to.be.revertedWith(
         "Ownable: caller is not the owner"
       );
     });
