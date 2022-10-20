@@ -373,18 +373,16 @@ describe("PeriodicTokenVesting", () => {
       expect(await vesting.getStopTimestamp()).to.equal(await helpers.time.latest());
     });
 
-    it("should emit a Revoked event", async () => {
-      await expect(vesting.connect(owner).revoke()).to.emit(vesting, "Revoked");
-    });
-
-    it("should unpause the vesting", async () => {
-      await vesting.connect(owner).pause();
-
-      expect(await vesting.paused()).to.be.true;
+    it("should update the isRevoked variable", async () => {
+      expect(await vesting.getIsRevoked()).to.be.false;
 
       await vesting.connect(owner).revoke();
 
-      expect(await vesting.paused()).to.be.false;
+      expect(await vesting.getIsRevoked()).to.be.true;
+    });
+
+    it("should emit a Revoked event", async () => {
+      await expect(vesting.connect(owner).revoke()).to.emit(vesting, "Revoked");
     });
 
     it("reverts when caller is not the owner", async () => {

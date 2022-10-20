@@ -14,6 +14,7 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
     IERC20 private token;
     bool private isRevocable;
     bool private isPausable;
+    bool private isRevoked;
     uint256 private start;
     uint256 private periodDuration;
     uint256[] private vestedPerPeriod;
@@ -144,7 +145,7 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
     /// @notice Get if the vesting is revoked.
     /// @return If the vesting is revoked.
     function getIsRevoked() public view returns (bool) {
-        return !paused() && stopTimestamp != 0;
+        return isRevoked;
     }
 
     /// @notice Get the amount of releasable tokens.
@@ -237,13 +238,12 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
     }
 
     /// @notice Revokes the vesting.
+    /// @dev Revoking will irreversibly stop the vesting at the time this function is called.
+    /// Keep in mind that once revoked, it cannot be unrevoked. For a reversible alternative check "pause".
     function revoke() external onlyOwner whenNotRevoked {
         require(isRevocable, "PeriodicTokenVesting#revoke: NON_REVOCABLE");
 
-        if (paused()) {
-            _unpause();
-        }
-
+        isRevoked = true;
         stopTimestamp = block.timestamp;
 
         emit Revoked();
