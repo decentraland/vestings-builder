@@ -7,18 +7,38 @@ import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
+/// @title Token vesting contract that vests periodically.
 contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
     using SafeERC20 for IERC20;
 
+    /// @dev The address that can release the vested tokens.
     address private beneficiary;
+
+    /// @dev The token being vested.
     IERC20 private token;
+
+    /// @dev Determines if the contract can be revoked.
     bool private isRevocable;
+
+    /// @dev Determines if the vesting can be paused.
     bool private isPausable;
+
+    /// @dev Determines if the contract has been revoked.
     bool private isRevoked;
+
+    /// @dev The time in which the vesting starts.
     uint256 private start;
+
+    /// @dev The duration in seconds of a vesting period.
     uint256 private periodDuration;
+
+    /// @dev The number of tokens vested on each period.
     uint256[] private vestedPerPeriod;
+
+    /// @dev The number of tokens released by the beneficiary.
     uint256 private released;
+
+    /// @dev The timestamp in which the vesting was paused or revoked.
     uint256 private stopTimestamp;
 
     event BeneficiaryUpdated(address indexed _newBeneficiary);
@@ -55,14 +75,14 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
     }
 
     /// @notice Initialize the vesting contract.
-    /// @param _owner The Owner of the contract.
-    /// @param _beneficiary The beneficiary of the vested tokens.
-    /// @param _token The token to vest.
-    /// @param _isRevocable Whether the vesting contract is revocable.
-    /// @param _isPausable Whether the vesting contract is pausable.
-    /// @param _start The start time of the vesting.
-    /// @param _periodDuration The duration of each period.
-    /// @param _vestedPerPeriod The amount of tokens vested per period.
+    /// @param _owner The owner of the contract.
+    /// @param _beneficiary The address that can release the vested tokens.
+    /// @param _token The token being vested.
+    /// @param _isRevocable Determines if the contract has been revoked.
+    /// @param _isPausable Determines if the vesting can be paused.
+    /// @param _start The time in which the vesting starts.
+    /// @param _periodDuration The duration in seconds of a vesting period.
+    /// @param _vestedPerPeriod The number of tokens vested on each period.
     function initialize(
         address _owner,
         address _beneficiary,
@@ -132,12 +152,17 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
         return vestedPerPeriod;
     }
 
-    /// @notice Get the amount of tokens released.
+    /// @notice Get the amount of tokens released by the beneficiary.
+    /// @return The amount of tokens released by the beneficiary.
     function getReleased() external view returns (uint256) {
         return released;
     }
 
-    /// @notice Get the timestamp when the vesting was revoked.
+    /// @notice Get the timestamp when the vesting was paused or revoked.
+    /// @dev If the vesting is revoked, it will return the timestamp when the revocation was made.
+    /// If not, and it is paused, it will return the timestamp when the pause was made.
+    /// If neither, the timestamp returned will be 0.
+    /// @return The timestamp when the vesting was paused or revoked.
     function getStopTimestamp() external view returns (uint256) {
         return stopTimestamp;
     }
@@ -149,6 +174,8 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
     }
 
     /// @notice Get the amount of releasable tokens.
+    /// @dev This is the current amount of tokens vested but with the amount of
+    /// tokens already released in consideration.
     /// @return The amount of releasable tokens.
     function getReleasable() public view returns (uint256) {
         return getVested() - released;
@@ -168,6 +195,8 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
     }
 
     /// @notice Get the amount of tokens currently vested.
+    /// @dev The result does not take into consideration the amount of tokens already released.
+    /// If paused or revoked, the amount returned will be the amount vested until pause or revoke.
     /// @return The amount of tokens currently vested.
     function getVested() public view returns (uint256) {
         // The current block timestamp will be used to calculate how much is vested until now.
@@ -184,18 +213,19 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
         }
 
         uint256 delta = timestamp - start;
-        // As arithmetic operations always return truncated values, we can obtain the number of periods this way
+        // Divisions will always return truncated values, we can obtain the number of periods this way.
         uint256 elapsedPeriods = delta / periodDuration;
         uint256 vestedPerPeriodLength = vestedPerPeriod.length;
 
-        // Use the defined periods length if more periods have passed to prevent the for loop from accessing undeclared entries.
+        // If more periods than the ones defined have elapsed, use the amount of defined
+        // periods length so the for loop doesn't do unnecessary loops.
         if (elapsedPeriods > vestedPerPeriodLength) {
             elapsedPeriods = vestedPerPeriodLength;
         }
 
         uint256 vested;
 
-        // Sum the vested amount for each period that has passed.
+        // Add the vested amount for each period that has passed.
         for (uint i = 0; i < elapsedPeriods; i++) {
             vested += vestedPerPeriod[i];
         }
@@ -203,13 +233,14 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
         return vested;
     }
 
-    /// @notice Set a new Beneficiary.
+    /// @notice Set a new beneficiary.
     /// @param _newBeneficiary The new beneficiary.
     function setBeneficiary(address _newBeneficiary) external onlyBeneficiary {
         _setBeneficiary(_newBeneficiary);
     }
 
-    /// @notice Transfer vested tokens to a different address.
+    /// @notice Release the currently vested tokens.
+    /// @dev If paused or revoked, the beneficiary will only be be able to release the amount vested until pause or revoke.
     /// @param _receiver The address that will receive the released tokens.
     /// @param _amount The amount of tokens to release.
     function release(address _receiver, uint256 _amount)
@@ -250,6 +281,7 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
     }
 
     /// @notice Transfer a certain amount of foreign tokens to an address.
+    /// @dev By foreign, it is meant any ERC20 that is not the one used by this vesting.
     /// @param _token The foreign token to release.
     /// @param _receiver The address that will receive the released tokens.
     /// @param _amount The amount of foreign tokens to release.
@@ -279,6 +311,11 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
     }
 
     /// @notice Transfer any surplus tokens from the contract to the owner.
+    /// @dev Surplus tokens are any tokens that do not correspond the vesting.
+    /// For example, if the vesting is for 100 tokens, but the contract has 200 tokens,
+    /// the extra 100 are surplus.
+    /// If the contract is revoked, all tokens that were not vested at the time of revocation are
+    /// considered surplus.
     /// @param _receiver The address that will receive the surplus tokens.
     /// @param _amount The amount of surplus tokens to release.
     function releaseSurplus(address _receiver, uint256 _amount)
@@ -298,19 +335,24 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
         // The amount of tokens that correspond to the vesting and cannot be released as surplus.
         uint256 nonSurplus;
 
-        // If the vesting was revoked, only the amount vested up to the revoke time is non surplus.
+        // If the vesting is revoked, only the amount vested up to the revoke timestamp is not surplus.
         if (getIsRevoked()) {
             nonSurplus = getVested();
         }
-        // If not, even if it is paused, the total amount of the vesting is not surplus.
+        // If it was not revoked, the sum of tokens vested in all defined periods should be
+        // considered not surplus.
         else {
             nonSurplus = getTotal();
         }
 
+        // The beneficiary might have already released some tokens so we need to subtract that amount
+        // to obtain the remainder of the non surplus tokens.
         nonSurplus -= released;
 
         uint256 contractBalance = token.balanceOf(address(this));
 
+        // Check that the contract has been funded with more than the non surplus tokens.
+        // This function would be useless otherwise.
         require(
             contractBalance > nonSurplus,
             "PeriodicTokenVesting#releaseSurplus: NO_SURPLUS"
@@ -318,6 +360,7 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
 
         uint256 surplus = contractBalance - nonSurplus;
 
+        // Check that the amount to release is not larger than the surplus.
         require(
             _amount <= surplus,
             "PeriodicTokenVesting#releaseSurplus: AMOUNT_EXCEEDS_SURPLUS"
@@ -329,7 +372,7 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
     }
 
     /// @notice Pause the vesting.
-    /// Similar to revoking the vesting but reversible.
+    /// @dev Similar to revoking the vesting but reversible.
     function pause() external onlyOwner whenNotRevoked {
         require(isPausable, "PeriodicTokenVesting#pause: NON_PAUSABLE");
 
