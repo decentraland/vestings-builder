@@ -412,224 +412,224 @@ describe("PeriodicTokenVesting", () => {
     });
   });
 
-  describe("release", () => {
-    let preInitSnapshot;
+  // describe("release", () => {
+  //   let preInitSnapshot;
 
-    beforeEach(async () => {
-      preInitSnapshot = await helpers.takeSnapshot();
+  //   beforeEach(async () => {
+  //     preInitSnapshot = await helpers.takeSnapshot();
 
-      await vesting.initialize(...initParamsList);
-    });
+  //     await vesting.initialize(...initParamsList);
+  //   });
 
-    it("should be able to release all tokens once all periods elapse", async () => {
-      await token.connect(treasury).transfer(vesting.address, totalToVest);
+  //   it("should be able to release all tokens once all periods elapse", async () => {
+  //     await token.connect(treasury).transfer(vesting.address, totalToVest);
 
-      await helpers.time.setNextBlockTimestamp(
-        initParams.start + initParams.periodDuration * initParams.vestedPerPeriod.length
-      );
+  //     await helpers.time.setNextBlockTimestamp(
+  //       initParams.start + initParams.periodDuration * initParams.vestedPerPeriod.length
+  //     );
 
-      expect(await token.balanceOf(vesting.address)).to.equal(totalToVest);
-      expect(await token.balanceOf(extra.address)).to.equal(Zero);
+  //     expect(await token.balanceOf(vesting.address)).to.equal(totalToVest);
+  //     expect(await token.balanceOf(extra.address)).to.equal(Zero);
 
-      await vesting.connect(beneficiary).release(extra.address, totalToVest);
+  //     await vesting.connect(beneficiary).release(extra.address, totalToVest);
 
-      expect(await token.balanceOf(vesting.address)).to.equal(Zero);
-      expect(await token.balanceOf(extra.address)).to.equal(totalToVest);
-    });
+  //     expect(await token.balanceOf(vesting.address)).to.equal(Zero);
+  //     expect(await token.balanceOf(extra.address)).to.equal(totalToVest);
+  //   });
 
-    it("should be able to release tokens vested up to the revoke", async () => {
-      await token.connect(treasury).transfer(vesting.address, totalToVest);
+  //   it("should be able to release tokens vested up to the revoke", async () => {
+  //     await token.connect(treasury).transfer(vesting.address, totalToVest);
 
-      await helpers.time.setNextBlockTimestamp(
-        initParams.start + initParams.periodDuration * (initParams.vestedPerPeriod.length / 2)
-      );
+  //     await helpers.time.setNextBlockTimestamp(
+  //       initParams.start + initParams.periodDuration * (initParams.vestedPerPeriod.length / 2)
+  //     );
 
-      await helpers.mine();
+  //     await helpers.mine();
 
-      const vestedUpToRevoke = await vesting.connect(owner).getVested();
+  //     const vestedUpToRevoke = await vesting.connect(owner).getVested();
 
-      await vesting.connect(owner).revoke();
+  //     await vesting.connect(owner).revoke();
 
-      await helpers.time.setNextBlockTimestamp(
-        initParams.start + initParams.periodDuration * initParams.vestedPerPeriod.length
-      );
+  //     await helpers.time.setNextBlockTimestamp(
+  //       initParams.start + initParams.periodDuration * initParams.vestedPerPeriod.length
+  //     );
 
-      expect(await token.balanceOf(vesting.address)).to.equal(totalToVest);
-      expect(await token.balanceOf(extra.address)).to.equal(Zero);
+  //     expect(await token.balanceOf(vesting.address)).to.equal(totalToVest);
+  //     expect(await token.balanceOf(extra.address)).to.equal(Zero);
 
-      await expect(vesting.connect(beneficiary).release(extra.address, vestedUpToRevoke.add("1"))).to.be.revertedWith(
-        "PeriodicTokenVesting#release: AMOUNT_TOO_LARGE"
-      );
+  //     await expect(vesting.connect(beneficiary).release(extra.address, vestedUpToRevoke.add("1"))).to.be.revertedWith(
+  //       "PeriodicTokenVesting#release: AMOUNT_TOO_LARGE"
+  //     );
 
-      await vesting.connect(beneficiary).release(extra.address, vestedUpToRevoke);
+  //     await vesting.connect(beneficiary).release(extra.address, vestedUpToRevoke);
 
-      expect(await token.balanceOf(vesting.address)).to.equal(totalToVest.sub(vestedUpToRevoke));
-      expect(await token.balanceOf(extra.address)).to.equal(vestedUpToRevoke);
-    });
+  //     expect(await token.balanceOf(vesting.address)).to.equal(totalToVest.sub(vestedUpToRevoke));
+  //     expect(await token.balanceOf(extra.address)).to.equal(vestedUpToRevoke);
+  //   });
 
-    it("should be able to release tokens vested up to the paused timestamp and release all when unpaused and all periods have elapsed", async () => {
-      await token.connect(treasury).transfer(vesting.address, totalToVest);
+  //   it("should be able to release tokens vested up to the paused timestamp and release all when unpaused and all periods have elapsed", async () => {
+  //     await token.connect(treasury).transfer(vesting.address, totalToVest);
 
-      await helpers.time.setNextBlockTimestamp(
-        initParams.start + initParams.periodDuration * (initParams.vestedPerPeriod.length / 2)
-      );
+  //     await helpers.time.setNextBlockTimestamp(
+  //       initParams.start + initParams.periodDuration * (initParams.vestedPerPeriod.length / 2)
+  //     );
 
-      await helpers.mine();
+  //     await helpers.mine();
 
-      const vestedUpToPause = await vesting.connect(owner).getVested();
+  //     const vestedUpToPause = await vesting.connect(owner).getVested();
 
-      await vesting.connect(owner).pause();
+  //     await vesting.connect(owner).pause();
 
-      await helpers.time.setNextBlockTimestamp(
-        initParams.start + initParams.periodDuration * initParams.vestedPerPeriod.length
-      );
+  //     await helpers.time.setNextBlockTimestamp(
+  //       initParams.start + initParams.periodDuration * initParams.vestedPerPeriod.length
+  //     );
 
-      expect(await token.balanceOf(vesting.address)).to.equal(totalToVest);
-      expect(await token.balanceOf(extra.address)).to.equal(Zero);
+  //     expect(await token.balanceOf(vesting.address)).to.equal(totalToVest);
+  //     expect(await token.balanceOf(extra.address)).to.equal(Zero);
 
-      await expect(vesting.connect(beneficiary).release(extra.address, vestedUpToPause.add("1"))).to.be.revertedWith(
-        "PeriodicTokenVesting#release: AMOUNT_TOO_LARGE"
-      );
+  //     await expect(vesting.connect(beneficiary).release(extra.address, vestedUpToPause.add("1"))).to.be.revertedWith(
+  //       "PeriodicTokenVesting#release: AMOUNT_TOO_LARGE"
+  //     );
 
-      await vesting.connect(beneficiary).release(extra.address, vestedUpToPause);
+  //     await vesting.connect(beneficiary).release(extra.address, vestedUpToPause);
 
-      expect(await token.balanceOf(vesting.address)).to.equal(totalToVest.sub(vestedUpToPause));
-      expect(await token.balanceOf(extra.address)).to.equal(vestedUpToPause);
+  //     expect(await token.balanceOf(vesting.address)).to.equal(totalToVest.sub(vestedUpToPause));
+  //     expect(await token.balanceOf(extra.address)).to.equal(vestedUpToPause);
 
-      await vesting.connect(owner).unpause();
+  //     await vesting.connect(owner).unpause();
 
-      await vesting.connect(beneficiary).release(extra.address, totalToVest.sub(vestedUpToPause));
+  //     await vesting.connect(beneficiary).release(extra.address, totalToVest.sub(vestedUpToPause));
 
-      expect(await token.balanceOf(vesting.address)).to.equal(Zero);
-      expect(await token.balanceOf(extra.address)).to.equal(totalToVest);
-    });
+  //     expect(await token.balanceOf(vesting.address)).to.equal(Zero);
+  //     expect(await token.balanceOf(extra.address)).to.equal(totalToVest);
+  //   });
 
-    it("should emit a Released event", async () => {
-      await token.connect(treasury).transfer(vesting.address, totalToVest);
+  //   it("should emit a Released event", async () => {
+  //     await token.connect(treasury).transfer(vesting.address, totalToVest);
 
-      await helpers.time.setNextBlockTimestamp(
-        initParams.start + initParams.periodDuration * initParams.vestedPerPeriod.length
-      );
+  //     await helpers.time.setNextBlockTimestamp(
+  //       initParams.start + initParams.periodDuration * initParams.vestedPerPeriod.length
+  //     );
 
-      const releaseAmount = parseEther("100");
+  //     const releaseAmount = parseEther("100");
 
-      await expect(vesting.connect(beneficiary).release(extra.address, releaseAmount))
-        .to.emit(vesting, "Released")
-        .withArgs(extra.address, releaseAmount);
-    });
+  //     await expect(vesting.connect(beneficiary).release(extra.address, releaseAmount))
+  //       .to.emit(vesting, "Released")
+  //       .withArgs(extra.address, releaseAmount);
+  //   });
 
-    it("should be able to release all tokens when more periods than the ones defined have passed", async () => {
-      await token.connect(treasury).transfer(vesting.address, totalToVest);
+  //   it("should be able to release all tokens when more periods than the ones defined have passed", async () => {
+  //     await token.connect(treasury).transfer(vesting.address, totalToVest);
 
-      await helpers.time.setNextBlockTimestamp(
-        initParams.start + initParams.periodDuration * (initParams.vestedPerPeriod.length + 1)
-      );
+  //     await helpers.time.setNextBlockTimestamp(
+  //       initParams.start + initParams.periodDuration * (initParams.vestedPerPeriod.length + 1)
+  //     );
 
-      expect(await token.balanceOf(vesting.address)).to.equal(totalToVest);
-      expect(await token.balanceOf(extra.address)).to.equal(Zero);
+  //     expect(await token.balanceOf(vesting.address)).to.equal(totalToVest);
+  //     expect(await token.balanceOf(extra.address)).to.equal(Zero);
 
-      await expect(vesting.connect(beneficiary).release(extra.address, totalToVest.add("1"))).to.be.revertedWith(
-        "PeriodicTokenVesting#release: AMOUNT_TOO_LARGE"
-      );
+  //     await expect(vesting.connect(beneficiary).release(extra.address, totalToVest.add("1"))).to.be.revertedWith(
+  //       "PeriodicTokenVesting#release: AMOUNT_TOO_LARGE"
+  //     );
 
-      await vesting.connect(beneficiary).release(extra.address, totalToVest);
+  //     await vesting.connect(beneficiary).release(extra.address, totalToVest);
 
-      expect(await token.balanceOf(vesting.address)).to.equal(Zero);
-      expect(await token.balanceOf(extra.address)).to.equal(totalToVest);
-    });
+  //     expect(await token.balanceOf(vesting.address)).to.equal(Zero);
+  //     expect(await token.balanceOf(extra.address)).to.equal(totalToVest);
+  //   });
 
-    it("should update the released variable with the amount released", async () => {
-      await token.connect(treasury).transfer(vesting.address, totalToVest);
+  //   it("should update the released variable with the amount released", async () => {
+  //     await token.connect(treasury).transfer(vesting.address, totalToVest);
 
-      await helpers.time.setNextBlockTimestamp(
-        initParams.start + initParams.periodDuration * initParams.vestedPerPeriod.length
-      );
+  //     await helpers.time.setNextBlockTimestamp(
+  //       initParams.start + initParams.periodDuration * initParams.vestedPerPeriod.length
+  //     );
 
-      expect(await vesting.getReleased()).to.equal(Zero);
+  //     expect(await vesting.getReleased()).to.equal(Zero);
 
-      await vesting.connect(beneficiary).release(extra.address, totalToVest);
+  //     await vesting.connect(beneficiary).release(extra.address, totalToVest);
 
-      expect(await vesting.getReleased()).to.equal(totalToVest);
-    });
+  //     expect(await vesting.getReleased()).to.equal(totalToVest);
+  //   });
 
-    it("should be able to release all when the vesting ends and there were 1250 periods with 1 million to vest each", async () => {
-      await preInitSnapshot.restore();
+  //   it("should be able to release all when the vesting ends and there were 1250 periods with 1 million to vest each", async () => {
+  //     await preInitSnapshot.restore();
 
-      initParams.vestedPerPeriod = [];
-      initParams.periodDuration = 86400;
-      initParamsList = Object.values(initParams);
+  //     initParams.vestedPerPeriod = [];
+  //     initParams.periodDuration = 86400;
+  //     initParamsList = Object.values(initParams);
 
-      for (let i = 0; i < 1250; i++) {
-        initParams.vestedPerPeriod.push(parseEther((1_000_000).toString()));
-      }
+  //     for (let i = 0; i < 1250; i++) {
+  //       initParams.vestedPerPeriod.push(parseEther((1_000_000).toString()));
+  //     }
 
-      await vesting.initialize(...initParamsList);
+  //     await vesting.initialize(...initParamsList);
 
-      totalToVest = initParams.vestedPerPeriod.reduce((a, b) => a.add(b), Zero);
+  //     totalToVest = initParams.vestedPerPeriod.reduce((a, b) => a.add(b), Zero);
 
-      await token.connect(treasury).transfer(vesting.address, totalToVest);
+  //     await token.connect(treasury).transfer(vesting.address, totalToVest);
 
-      await helpers.time.setNextBlockTimestamp(
-        initParams.start + initParams.periodDuration * initParams.vestedPerPeriod.length
-      );
+  //     await helpers.time.setNextBlockTimestamp(
+  //       initParams.start + initParams.periodDuration * initParams.vestedPerPeriod.length
+  //     );
 
-      await vesting.connect(beneficiary).release(extra.address, totalToVest);
-    });
+  //     await vesting.connect(beneficiary).release(extra.address, totalToVest);
+  //   });
 
-    it("reverts when amount is 0", async () => {
-      await token.connect(treasury).transfer(vesting.address, totalToVest);
+  //   it("reverts when amount is 0", async () => {
+  //     await token.connect(treasury).transfer(vesting.address, totalToVest);
 
-      await helpers.time.setNextBlockTimestamp(
-        initParams.start + initParams.periodDuration * initParams.vestedPerPeriod.length
-      );
+  //     await helpers.time.setNextBlockTimestamp(
+  //       initParams.start + initParams.periodDuration * initParams.vestedPerPeriod.length
+  //     );
 
-      await helpers.mine();
+  //     await helpers.mine();
 
-      expect(await vesting.getReleasable()).to.equal(totalToVest);
+  //     expect(await vesting.getReleasable()).to.equal(totalToVest);
 
-      await expect(vesting.connect(beneficiary).release(extra.address, Zero)).to.be.revertedWith(
-        "PeriodicTokenVesting#release: INVALID_AMOUNT"
-      );
-    });
+  //     await expect(vesting.connect(beneficiary).release(extra.address, Zero)).to.be.revertedWith(
+  //       "PeriodicTokenVesting#release: INVALID_AMOUNT"
+  //     );
+  //   });
 
-    it("reverts when amount is greater than what is releasable", async () => {
-      await token.connect(treasury).transfer(vesting.address, totalToVest);
+  //   it("reverts when amount is greater than what is releasable", async () => {
+  //     await token.connect(treasury).transfer(vesting.address, totalToVest);
 
-      await helpers.time.setNextBlockTimestamp(
-        initParams.start + initParams.periodDuration * initParams.vestedPerPeriod.length
-      );
+  //     await helpers.time.setNextBlockTimestamp(
+  //       initParams.start + initParams.periodDuration * initParams.vestedPerPeriod.length
+  //     );
 
-      await helpers.mine();
+  //     await helpers.mine();
 
-      expect(await vesting.getReleasable()).to.equal(totalToVest);
+  //     expect(await vesting.getReleasable()).to.equal(totalToVest);
 
-      await expect(vesting.connect(beneficiary).release(extra.address, totalToVest.add("1"))).to.be.revertedWith(
-        "PeriodicTokenVesting#release: AMOUNT_TOO_LARGE"
-      );
-    });
+  //     await expect(vesting.connect(beneficiary).release(extra.address, totalToVest.add("1"))).to.be.revertedWith(
+  //       "PeriodicTokenVesting#release: AMOUNT_TOO_LARGE"
+  //     );
+  //   });
 
-    it("reverts when caller is not the beneficiary", async () => {
-      await expect(vesting.connect(extra).release(extra.address, parseEther("100"))).to.be.revertedWith(
-        "PeriodicTokenVesting#onlyBeneficiary: NOT_BENEFICIARY"
-      );
-    });
+  //   it("reverts when caller is not the beneficiary", async () => {
+  //     await expect(vesting.connect(extra).release(extra.address, parseEther("100"))).to.be.revertedWith(
+  //       "PeriodicTokenVesting#onlyBeneficiary: NOT_BENEFICIARY"
+  //     );
+  //   });
 
-    it("reverts when the contract does not have funds", async () => {
-      await helpers.time.setNextBlockTimestamp(
-        initParams.start + initParams.periodDuration * initParams.vestedPerPeriod.length
-      );
+  //   it("reverts when the contract does not have funds", async () => {
+  //     await helpers.time.setNextBlockTimestamp(
+  //       initParams.start + initParams.periodDuration * initParams.vestedPerPeriod.length
+  //     );
 
-      await expect(vesting.connect(beneficiary).release(extra.address, parseEther("100"))).to.be.revertedWith(
-        "ERC20: transfer amount exceeds balance"
-      );
-    });
+  //     await expect(vesting.connect(beneficiary).release(extra.address, parseEther("100"))).to.be.revertedWith(
+  //       "ERC20: transfer amount exceeds balance"
+  //     );
+  //   });
 
-    it("reverts when the receiver is 0x0", async () => {
-      await expect(vesting.connect(beneficiary).release(AddressZero, parseEther("100"))).to.be.revertedWith(
-        "PeriodicTokenVesting#release: INVALID_RECEIVER"
-      );
-    });
-  });
+  //   it("reverts when the receiver is 0x0", async () => {
+  //     await expect(vesting.connect(beneficiary).release(AddressZero, parseEther("100"))).to.be.revertedWith(
+  //       "PeriodicTokenVesting#release: INVALID_RECEIVER"
+  //     );
+  //   });
+  // });
 
   describe("revoke", () => {
     let preInitSnapshot;
