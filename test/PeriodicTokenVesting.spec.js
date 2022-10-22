@@ -589,6 +589,12 @@ describe("PeriodicTokenVesting", () => {
         "Ownable: caller is not the owner"
       );
     });
+
+    it("reverts when the contract balance is lower or equal than the non surplus", async () => {
+      await expect(vesting.connect(owner).releaseSurplus(extra.address, totalToVest)).to.be.revertedWith(
+        "PeriodicTokenVesting#releaseSurplus: NO_SURPLUS"
+      );
+    });
   });
 
   describe("pause", () => {
