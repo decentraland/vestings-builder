@@ -24,3 +24,5 @@ artifacts
 cache
 coverage
 coverage.json
+
+.vscode
