@@ -463,6 +463,12 @@ describe("PeriodicTokenVesting", () => {
         vesting.connect(owner).releaseForeignToken(foreignToken.address, beneficiary.address, parseEther("100"))
       ).to.be.revertedWith("ERC20: transfer amount exceeds balance");
     });
+
+    it("reverts when token is the same as the one vested", async () => {
+      await expect(
+        vesting.connect(owner).releaseForeignToken(token.address, beneficiary.address, parseEther("100"))
+      ).to.be.revertedWith("PeriodicTokenVesting#releaseForeignToken: INVALID_TOKEN");
+    });
   });
 
   describe("releaseSurplus", () => {
