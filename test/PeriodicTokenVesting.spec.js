@@ -200,6 +200,205 @@ describe("PeriodicTokenVesting", () => {
     });
   });
 
+  describe("getVested", () => {
+    let preInitSnapshot;
+
+    beforeEach(async () => {
+      preInitSnapshot = await helpers.takeSnapshot();
+
+      await vesting.initialize(...initParamsList);
+    });
+
+    it("should return 0 if the vesting has not started", async () => {
+      await preInitSnapshot.restore();
+
+      initParams.start *= 2;
+      initParamsList = Object.values(initParams);
+
+      await vesting.initialize(...initParamsList);
+
+      expect(await vesting.getVested()).to.equal(0);
+    });
+
+    it("should return 0 if the vesting was revoked before start", async () => {
+      await preInitSnapshot.restore();
+
+      initParams.start *= 2;
+      initParamsList = Object.values(initParams);
+
+      await vesting.initialize(...initParamsList);
+
+      await vesting.connect(owner).revoke();
+
+      await helpers.time.setNextBlockTimestamp(
+        initParams.start + initParams.periodDuration * initParams.vestedPerPeriod.length
+      );
+
+      expect(await vesting.getVested()).to.equal(0);
+    });
+
+    it("should return 0 if the vesting was paused before start", async () => {
+      await preInitSnapshot.restore();
+
+      initParams.start *= 2;
+      initParamsList = Object.values(initParams);
+
+      await vesting.initialize(...initParamsList);
+
+      await vesting.connect(owner).pause();
+
+      await helpers.time.setNextBlockTimestamp(
+        initParams.start + initParams.periodDuration * initParams.vestedPerPeriod.length
+      );
+
+      expect(await vesting.getVested()).to.equal(0);
+    });
+
+    it("should return total if all periods have passed", async () => {
+      await helpers.time.setNextBlockTimestamp(
+        initParams.start + initParams.periodDuration * initParams.vestedPerPeriod.length
+      );
+
+      await helpers.mine();
+
+      expect(await vesting.getVested()).to.equal(totalToVest);
+    });
+
+    it("should return total if all periods + 1 have passed", async () => {
+      await helpers.time.setNextBlockTimestamp(
+        initParams.start + initParams.periodDuration * (initParams.vestedPerPeriod.length + 1)
+      );
+
+      await helpers.mine();
+
+      expect(await vesting.getVested()).to.equal(totalToVest);
+    });
+
+    it("should return total if all periods + 1 have passed and the vesting is linear", async () => {
+      await preInitSnapshot.restore();
+
+      initParams.linear = true;
+      initParamsList = Object.values(initParams);
+
+      await vesting.initialize(...initParamsList);
+
+      await helpers.time.setNextBlockTimestamp(
+        initParams.start + initParams.periodDuration * (initParams.vestedPerPeriod.length + 1)
+      );
+
+      await helpers.mine();
+
+      expect(await vesting.getVested()).to.equal(totalToVest);
+    });
+
+    it("should return 2500 when the cliff is reached", async () => {
+      await helpers.time.setNextBlockTimestamp(initParams.start + initParams.periodDuration * 4);
+
+      await helpers.mine();
+
+      expect(await vesting.getVested()).to.equal(parseEther("2500"));
+    });
+
+    it("should return 2500 when the cliff is reached and the vesting is linear", async () => {
+      await preInitSnapshot.restore();
+
+      initParams.linear = true;
+      initParamsList = Object.values(initParams);
+
+      await vesting.initialize(...initParamsList);
+
+      await helpers.time.setNextBlockTimestamp(initParams.start + initParams.periodDuration * 4);
+
+      await helpers.mine();
+
+      expect(await vesting.getVested()).to.equal(parseEther("2500"));
+    });
+
+    it("should return 2500 when the cliff + half a period have elapsed", async () => {
+      await helpers.time.setNextBlockTimestamp(
+        initParams.start + initParams.periodDuration * 4 + initParams.periodDuration / 2
+      );
+
+      await helpers.mine();
+
+      expect(await vesting.getVested()).to.equal(parseEther("2500"));
+    });
+
+    it("should return 2500 + half of the current period when the cliff + half a period have elapsed and the vesting is linear", async () => {
+      await preInitSnapshot.restore();
+
+      initParams.linear = true;
+      initParamsList = Object.values(initParams);
+
+      await vesting.initialize(...initParamsList);
+
+      await helpers.time.setNextBlockTimestamp(
+        initParams.start + initParams.periodDuration * 4 + initParams.periodDuration / 2
+      );
+
+      await helpers.mine();
+
+      expect(await vesting.getVested()).to.equal(parseEther("2500").add(parseEther("625").div("2")));
+    });
+
+    it("should return 2500 + quarter of the current period when the cliff + quarter of a period have elapsed and the vesting is linear", async () => {
+      await preInitSnapshot.restore();
+
+      initParams.linear = true;
+      initParamsList = Object.values(initParams);
+
+      await vesting.initialize(...initParamsList);
+
+      await helpers.time.setNextBlockTimestamp(
+        initParams.start + initParams.periodDuration * 4 + initParams.periodDuration / 4
+      );
+
+      await helpers.mine();
+
+      expect(await vesting.getVested()).to.equal(parseEther("2500").add(parseEther("625").div("4")));
+    });
+
+    it("should return 2500 + 3/4 of the current period when the cliff + 3/4 of a period have elapsed and the vesting is linear", async () => {
+      await preInitSnapshot.restore();
+
+      initParams.linear = true;
+      initParamsList = Object.values(initParams);
+
+      await vesting.initialize(...initParamsList);
+
+      await helpers.time.setNextBlockTimestamp(
+        initParams.start + initParams.periodDuration * 4 + (initParams.periodDuration / 4) * 3
+      );
+
+      await helpers.mine();
+
+      expect(await vesting.getVested()).to.equal(parseEther("2500").add(parseEther("625").div("4").mul("3")));
+    });
+
+    it("should return 0 when half of the first period has elapsed", async () => {
+      await helpers.time.setNextBlockTimestamp(initParams.start + initParams.periodDuration / 2);
+
+      await helpers.mine();
+
+      expect(await vesting.getVested()).to.equal("0");
+    });
+
+    it("should return 0 when half of the first period has elapsed and the vesting is linear", async () => {
+      await preInitSnapshot.restore();
+
+      initParams.linear = true;
+      initParamsList = Object.values(initParams);
+
+      await vesting.initialize(...initParamsList);
+
+      await helpers.time.setNextBlockTimestamp(initParams.start + initParams.periodDuration / 2);
+
+      await helpers.mine();
+
+      expect(await vesting.getVested()).to.equal("0");
+    });
+  });
+
   describe("release", () => {
     beforeEach(async () => {
       await vesting.initialize(...initParamsList);
