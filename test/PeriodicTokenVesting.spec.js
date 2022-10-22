@@ -28,7 +28,7 @@ describe("PeriodicTokenVesting", () => {
     [deployer, owner, beneficiary, treasury, extra] = await ethers.getSigners();
 
     const Token = await ethers.getContractFactory("MockToken");
-    token = await Token.deploy(parseEther("100000"), treasury.address);
+    token = await Token.deploy(parseEther((1_000_000_000_000).toString()), treasury.address);
 
     const PeriodicTokenVesting = await ethers.getContractFactory("PeriodicTokenVesting");
     vestingImpl = await PeriodicTokenVesting.deploy();
@@ -98,6 +98,19 @@ describe("PeriodicTokenVesting", () => {
       expect(await vesting.getStart()).to.equal(initParams.start);
       expect(await vesting.getPeriodDuration()).to.equal(initParams.periodDuration);
       expect(await vesting.getVestedPerPeriod()).to.have.same.deep.members(vestedPerPeriod);
+    });
+
+    it("should support 1250 periods with 1 million to vest each", async () => {
+      initParams.vestedPerPeriod = [];
+      initParamsList = Object.values(initParams);
+
+      for (let i = 0; i < 1250; i++) {
+        initParams.vestedPerPeriod.push(parseEther((1_000_000).toString()));
+      }
+
+      await vesting.initialize(...initParamsList);
+
+      expect(await vesting.getVestedPerPeriod()).to.have.same.deep.members(initParams.vestedPerPeriod);
     });
 
     it("reverts when initializing twice", async () => {
@@ -400,7 +413,11 @@ describe("PeriodicTokenVesting", () => {
   });
 
   describe("release", () => {
+    let preInitSnapshot;
+
     beforeEach(async () => {
+      preInitSnapshot = await helpers.takeSnapshot();
+
       await vesting.initialize(...initParamsList);
     });
 
@@ -533,6 +550,30 @@ describe("PeriodicTokenVesting", () => {
       await vesting.connect(beneficiary).release(extra.address, totalToVest);
 
       expect(await vesting.getReleased()).to.equal(totalToVest);
+    });
+
+    it("should be able to release all when the vesting ends and there were 1250 periods with 1 million to vest each", async () => {
+      await preInitSnapshot.restore();
+
+      initParams.vestedPerPeriod = [];
+      initParams.periodDuration = 86400;
+      initParamsList = Object.values(initParams);
+
+      for (let i = 0; i < 1250; i++) {
+        initParams.vestedPerPeriod.push(parseEther((1_000_000).toString()));
+      }
+
+      await vesting.initialize(...initParamsList);
+
+      totalToVest = initParams.vestedPerPeriod.reduce((a, b) => a.add(b), Zero);
+
+      await token.connect(treasury).transfer(vesting.address, totalToVest);
+
+      await helpers.time.setNextBlockTimestamp(
+        initParams.start + initParams.periodDuration * initParams.vestedPerPeriod.length
+      );
+
+      await vesting.connect(beneficiary).release(extra.address, totalToVest);
     });
 
     it("reverts when amount is 0", async () => {
