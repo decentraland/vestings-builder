@@ -2,13 +2,15 @@ on: [push, pull_request]
 
 name: Compile and Test
 jobs:
-  build:
+  compile-and-coverage:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
         with:
           node-version: 16
+          cache: 'npm'
       - run: npm ci
       - run: npx hardhat compile
-      - run: npx hardhat test
+      - run: npx hardhat coverage
+      - uses: codecov/codecov-action@v3.1.1
