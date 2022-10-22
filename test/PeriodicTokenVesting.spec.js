@@ -66,6 +66,7 @@ describe("PeriodicTokenVesting", () => {
       token: token.address,
       revocable: true,
       pausable: true,
+      linear: false,
       start: await helpers.time.latest(),
       periodDuration: 7889400,
       vestedPerPeriod,
