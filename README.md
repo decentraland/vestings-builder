@@ -1,5 +1,7 @@
 # Decentraland Vesting Generator
 
+[![codecov](https://codecov.io/github/decentraland/vestings-builder/branch/master/graph/badge.svg?token=1CBBGTGZR5)](https://codecov.io/github/decentraland/vestings-builder)
+
 A dApp to deploy a [generic vesting contract](./contracts/VestingImpl.sol): A token holder contract that can release its token balance gradually like a typical vesting scheme, with a cliff and vesting period. Optionally revocable by the owner.
 
 ## Use it
