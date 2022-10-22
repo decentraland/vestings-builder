@@ -521,6 +521,20 @@ describe("PeriodicTokenVesting", () => {
       expect(await token.balanceOf(extra.address)).to.equal(totalToVest);
     });
 
+    it("should update the released variable with the amount released", async () => {
+      await token.connect(treasury).transfer(vesting.address, totalToVest);
+
+      await helpers.time.setNextBlockTimestamp(
+        initParams.start + initParams.periodDuration * initParams.vestedPerPeriod.length
+      );
+
+      expect(await vesting.getReleased()).to.equal(Zero);
+
+      await vesting.connect(beneficiary).release(extra.address, totalToVest);
+
+      expect(await vesting.getReleased()).to.equal(totalToVest);
+    });
+
     it("reverts when amount is 0", async () => {
       await token.connect(treasury).transfer(vesting.address, totalToVest);
 
