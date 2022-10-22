@@ -302,6 +302,26 @@ describe("PeriodicTokenVesting", () => {
         .withArgs(extra.address, releaseAmount);
     });
 
+    it("should be able to release all tokens when more periods than the ones defined have passed", async () => {
+      await token.connect(treasury).transfer(vesting.address, totalToVest);
+
+      await helpers.time.setNextBlockTimestamp(
+        initParams.start + initParams.periodDuration * (initParams.vestedPerPeriod.length + 1)
+      );
+
+      expect(await token.balanceOf(vesting.address)).to.equal(totalToVest);
+      expect(await token.balanceOf(extra.address)).to.equal(Zero);
+
+      await expect(vesting.connect(beneficiary).release(extra.address, totalToVest.add("1"))).to.be.revertedWith(
+        "PeriodicTokenVesting#release: AMOUNT_TOO_LARGE"
+      );
+
+      await vesting.connect(beneficiary).release(extra.address, totalToVest);
+
+      expect(await token.balanceOf(vesting.address)).to.equal(Zero);
+      expect(await token.balanceOf(extra.address)).to.equal(totalToVest);
+    });
+
     it("reverts when amount is 0", async () => {
       await token.connect(treasury).transfer(vesting.address, totalToVest);
 
