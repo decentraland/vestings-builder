@@ -23,7 +23,7 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
     /// @dev Determines if the vesting can be paused.
     bool private isPausable;
 
-    /// @dev Determines if the tokens are vested throughout the current period.
+    /// @dev Determines if the tokens are vested between periods.
     bool private isLinear;
 
     /// @dev Determines if the contract has been revoked.
