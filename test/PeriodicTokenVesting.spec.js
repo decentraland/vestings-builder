@@ -66,7 +66,6 @@ describe("PeriodicTokenVesting", () => {
       token: token.address,
       revocable: true,
       pausable: true,
-      linear: false,
       start: await helpers.time.latest(),
       periodDuration: 7889400,
       vestedPerPeriod,
@@ -287,39 +286,7 @@ describe("PeriodicTokenVesting", () => {
       expect(await vesting.getVested()).to.equal(totalToVest);
     });
 
-    it("should return total if all periods + 1 have passed and the vesting is linear", async () => {
-      await preInitSnapshot.restore();
-
-      initParams.linear = true;
-      initParamsList = Object.values(initParams);
-
-      await vesting.initialize(...initParamsList);
-
-      await helpers.time.setNextBlockTimestamp(
-        initParams.start + initParams.periodDuration * (initParams.vestedPerPeriod.length + 1)
-      );
-
-      await helpers.mine();
-
-      expect(await vesting.getVested()).to.equal(totalToVest);
-    });
-
     it("should return 2500 when the cliff is reached", async () => {
-      await helpers.time.setNextBlockTimestamp(initParams.start + initParams.periodDuration * 4);
-
-      await helpers.mine();
-
-      expect(await vesting.getVested()).to.equal(parseEther("2500"));
-    });
-
-    it("should return 2500 when the cliff is reached and the vesting is linear", async () => {
-      await preInitSnapshot.restore();
-
-      initParams.linear = true;
-      initParamsList = Object.values(initParams);
-
-      await vesting.initialize(...initParamsList);
-
       await helpers.time.setNextBlockTimestamp(initParams.start + initParams.periodDuration * 4);
 
       await helpers.mine();
@@ -337,73 +304,7 @@ describe("PeriodicTokenVesting", () => {
       expect(await vesting.getVested()).to.equal(parseEther("2500"));
     });
 
-    it("should return 2500 + half of the current period when the cliff + half a period have elapsed and the vesting is linear", async () => {
-      await preInitSnapshot.restore();
-
-      initParams.linear = true;
-      initParamsList = Object.values(initParams);
-
-      await vesting.initialize(...initParamsList);
-
-      await helpers.time.setNextBlockTimestamp(
-        initParams.start + initParams.periodDuration * 4 + initParams.periodDuration / 2
-      );
-
-      await helpers.mine();
-
-      expect(await vesting.getVested()).to.equal(parseEther("2500").add(parseEther("625").div("2")));
-    });
-
-    it("should return 2500 + quarter of the current period when the cliff + quarter of a period have elapsed and the vesting is linear", async () => {
-      await preInitSnapshot.restore();
-
-      initParams.linear = true;
-      initParamsList = Object.values(initParams);
-
-      await vesting.initialize(...initParamsList);
-
-      await helpers.time.setNextBlockTimestamp(
-        initParams.start + initParams.periodDuration * 4 + initParams.periodDuration / 4
-      );
-
-      await helpers.mine();
-
-      expect(await vesting.getVested()).to.equal(parseEther("2500").add(parseEther("625").div("4")));
-    });
-
-    it("should return 2500 + 3/4 of the current period when the cliff + 3/4 of a period have elapsed and the vesting is linear", async () => {
-      await preInitSnapshot.restore();
-
-      initParams.linear = true;
-      initParamsList = Object.values(initParams);
-
-      await vesting.initialize(...initParamsList);
-
-      await helpers.time.setNextBlockTimestamp(
-        initParams.start + initParams.periodDuration * 4 + (initParams.periodDuration / 4) * 3
-      );
-
-      await helpers.mine();
-
-      expect(await vesting.getVested()).to.equal(parseEther("2500").add(parseEther("625").div("4").mul("3")));
-    });
-
     it("should return 0 when half of the first period has elapsed", async () => {
-      await helpers.time.setNextBlockTimestamp(initParams.start + initParams.periodDuration / 2);
-
-      await helpers.mine();
-
-      expect(await vesting.getVested()).to.equal("0");
-    });
-
-    it("should return 0 when half of the first period has elapsed and the vesting is linear", async () => {
-      await preInitSnapshot.restore();
-
-      initParams.linear = true;
-      initParamsList = Object.values(initParams);
-
-      await vesting.initialize(...initParamsList);
-
       await helpers.time.setNextBlockTimestamp(initParams.start + initParams.periodDuration / 2);
 
       await helpers.mine();
