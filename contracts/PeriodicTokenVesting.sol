@@ -207,8 +207,11 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
         uint256 total;
 
         // Sum all the tokens vested per period to obtain the total amount.
-        for (uint i = 0; i < vestedPerPeriod.length; i++) {
+        for (uint i = 0; i < vestedPerPeriod.length; ) {
             total += vestedPerPeriod[i];
+            unchecked {
+                ++i;
+            }
         }
 
         return total;
@@ -248,8 +251,11 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
         uint256 vested;
 
         // Add the vested amount for each period that has passed.
-        for (uint i = 0; i < elapsedPeriods; i++) {
+        for (uint i = 0; i < elapsedPeriods; ) {
             vested += vestedPerPeriod[i];
+            unchecked {
+                ++i;
+            }
         }
 
         // If the vesting was defined as linear, we have to obtain the amount of tokens vested
