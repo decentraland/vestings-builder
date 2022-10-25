@@ -231,6 +231,7 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
         }
 
         // If the current or stop timestamp was previous to the start time, nothing is vested.
+        // linear cliff duration is always 0 if the vesting is not linear.
         if (timestamp < start + linear.cliffDuration) {
             return 0;
         }
