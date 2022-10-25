@@ -57,9 +57,9 @@ describe("PeriodicTokenVesting", () => {
       owner: owner.address,
       beneficiary: beneficiary.address,
       token: token.address,
-      revocable: true,
-      pausable: true,
-      linear: false,
+      isRevocable: true,
+      isPausable: true,
+      isLinear: false,
       start: await helpers.time.latest(),
       periodDuration: 3600,
       cliffDuration: 0,
@@ -84,7 +84,7 @@ describe("PeriodicTokenVesting", () => {
     });
 
     it("should initialize values", async () => {
-      initParams.linear = true;
+      initParams.isLinear = true;
       initParams.cliffDuration = 100;
       initParamsList = Object.values(initParams);
 
@@ -93,9 +93,9 @@ describe("PeriodicTokenVesting", () => {
       expect(await vesting.owner()).to.equal(initParams.owner);
       expect(await vesting.getBeneficiary()).to.equal(initParams.beneficiary);
       expect(await vesting.getToken()).to.equal(initParams.token);
-      expect(await vesting.getIsRevocable()).to.equal(initParams.revocable);
-      expect(await vesting.getIsPausable()).to.equal(initParams.pausable);
-      expect(await vesting.getIsLinear()).to.equal(initParams.linear);
+      expect(await vesting.getIsRevocable()).to.equal(initParams.isRevocable);
+      expect(await vesting.getIsPausable()).to.equal(initParams.isPausable);
+      expect(await vesting.getIsLinear()).to.equal(initParams.isLinear);
       expect(await vesting.getStart()).to.equal(initParams.start);
       expect(await vesting.getPeriodDuration()).to.equal(initParams.periodDuration);
       expect(await vesting.getCliffDuration()).to.equal(initParams.cliffDuration);
@@ -323,7 +323,9 @@ describe("PeriodicTokenVesting", () => {
 
       await vesting.initialize(...initParamsList);
 
-      await helpers.time.setNextBlockTimestamp(initParams.start + initParams.cliffDuration + initParams.periodDuration - 1);
+      await helpers.time.setNextBlockTimestamp(
+        initParams.start + initParams.cliffDuration + initParams.periodDuration - 1
+      );
 
       await vesting.connect(owner).pause();
 
@@ -363,7 +365,7 @@ describe("PeriodicTokenVesting", () => {
     it("should return total if all periods + 1 have passed and the vesting is linear", async () => {
       await preInitSnapshot.restore();
 
-      initParams.linear = [true, 0];
+      initParams.isLinear = true;
       initParamsList = Object.values(initParams);
 
       await vesting.initialize(...initParamsList);
@@ -388,7 +390,7 @@ describe("PeriodicTokenVesting", () => {
     it("should return half the vested tokens of the first period when half the first period has elapsed and the vesting is linear", async () => {
       await preInitSnapshot.restore();
 
-      initParams.linear = [true, 0];
+      initParams.isLinear = true;
       initParamsList = Object.values(initParams);
 
       await vesting.initialize(...initParamsList);
@@ -403,7 +405,7 @@ describe("PeriodicTokenVesting", () => {
     it("should return 1/4 the vested tokens of the first period when 1/4 of the first period has elapsed and the vesting is linear", async () => {
       await preInitSnapshot.restore();
 
-      initParams.linear = [true, 0];
+      initParams.isLinear = true;
       initParamsList = Object.values(initParams);
 
       await vesting.initialize(...initParamsList);
@@ -418,7 +420,7 @@ describe("PeriodicTokenVesting", () => {
     it("should return 3/4 the vested tokens of the first period when 3/4 of the first period has elapsed and the vesting is linear", async () => {
       await preInitSnapshot.restore();
 
-      initParams.linear = [true, 0];
+      initParams.isLinear = true;
       initParamsList = Object.values(initParams);
 
       await vesting.initialize(...initParamsList);
@@ -433,7 +435,7 @@ describe("PeriodicTokenVesting", () => {
     it("should return all the vested tokens of the first period when the first period has elapsed and the vesting is linear", async () => {
       await preInitSnapshot.restore();
 
-      initParams.linear = [true, 0];
+      initParams.isLinear = true;
       initParamsList = Object.values(initParams);
 
       await vesting.initialize(...initParamsList);
@@ -701,7 +703,7 @@ describe("PeriodicTokenVesting", () => {
     it("reverts when contract is not revocable", async () => {
       await preInitSnapshot.restore();
 
-      initParams.revocable = false;
+      initParams.isRevocable = false;
       initParamsList = Object.values(initParams);
 
       await vesting.initialize(...initParamsList);
@@ -955,7 +957,7 @@ describe("PeriodicTokenVesting", () => {
     it("reverts when the vesting is non pausable", async () => {
       await preInitSnapshot.restore();
 
-      initParams.pausable = false;
+      initParams.isPausable = false;
       initParamsList = Object.values(initParams);
 
       await vesting.initialize(...initParamsList);
