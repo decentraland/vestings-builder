@@ -1015,4 +1015,56 @@ describe("PeriodicTokenVesting", () => {
       );
     });
   });
+
+  describe("4 year vesting, quarterly basis, 1 year cliff (4 quarters), 10K total vesting", () => {
+    const yearInSeconds = 31557600;
+
+    beforeEach(async () => {
+      initParams.periodDuration = yearInSeconds / 4;
+      initParams.cliffDuration = initParams.periodDuration * 3;
+      initParams.vestedPerPeriod = [
+        parseEther("2500"),
+        parseEther("625"),
+        parseEther("625"),
+        parseEther("625"),
+        parseEther("625"),
+        parseEther("625"),
+        parseEther("625"),
+        parseEther("625"),
+        parseEther("625"),
+        parseEther("625"),
+        parseEther("625"),
+        parseEther("625"),
+        parseEther("625"),
+      ];
+
+      totalToVest = initParams.vestedPerPeriod.reduce((acc, cur) => acc.add(cur), Zero);
+
+      initParamsList = Object.values(initParams);
+
+      await vesting.initialize(...initParamsList);
+
+      await token.connect(treasury).transfer(vesting.address, totalToVest);
+    });
+
+    it("should be able to release up to 2500 once a year has elapsed", async () => {
+      await helpers.time.setNextBlockTimestamp(initParams.start + yearInSeconds - 1);
+
+      // Cannot event release 1 wei if the first period has not elapsed.
+      await expect(vesting.connect(beneficiary).release(extra.address, 1)).to.be.revertedWith(
+        "PeriodicTokenVesting#release: AMOUNT_TOO_LARGE"
+      );
+
+      await helpers.time.setNextBlockTimestamp(initParams.start + yearInSeconds);
+
+      // As soon as the first period has elapsed, we can release any amount up to 2500 ether.
+      await expect(vesting.connect(beneficiary).release(extra.address, parseEther("500"))).to.not.be.reverted;
+      await expect(vesting.connect(beneficiary).release(extra.address, parseEther("2000"))).to.not.be.reverted;
+
+      // Once all available has been released, nothing else can be redeemed anymore.
+      await expect(vesting.connect(beneficiary).release(extra.address, 1)).to.be.revertedWith(
+        "PeriodicTokenVesting#release: AMOUNT_TOO_LARGE"
+      );
+    });
+  });
 });
