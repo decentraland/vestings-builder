@@ -23,7 +23,7 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
     /// @dev Determines if the vesting can be paused.
     bool private isPausable;
 
-    /// @dev Determines if the tokens are vested between periods.
+    /// @dev Determines if the tokens are vested linearly between periods.
     bool private isLinear;
 
     /// @dev Determines if the contract has been revoked.
@@ -34,6 +34,9 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
 
     /// @dev The duration in seconds of a vesting period.
     uint256 private periodDuration;
+
+    /// @dev The duration in seconds of the cliff.
+    uint256 private cliffDuration;
 
     /// @dev The number of tokens vested on each period.
     uint256[] private vestedPerPeriod;
@@ -83,9 +86,10 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
     /// @param _token The token being vested.
     /// @param _isRevocable Determines if the contract has been revoked.
     /// @param _isPausable Determines if the vesting can be paused.
-    /// @param _isLinear Determines if the tokens are vested throughout the current period.
+    /// @param _isLinear Determines if the tokens are vested linearly between periods.
     /// @param _start The time in which the vesting starts.
     /// @param _periodDuration The duration in seconds of a vesting period.
+    /// @param _cliffDuration The duration in seconds of the cliff.
     /// @param _vestedPerPeriod The number of tokens vested on each period.
     function initialize(
         address _owner,
@@ -96,6 +100,7 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
         bool _isLinear,
         uint256 _start,
         uint256 _periodDuration,
+        uint256 _cliffDuration,
         uint256[] calldata _vestedPerPeriod
     ) external initializer {
         // Set the owner using the OwnableUpgradeable functions.
@@ -113,6 +118,7 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
         isRevocable = _isRevocable;
         isPausable = _isPausable;
         isLinear = _isLinear;
+        cliffDuration = _cliffDuration;
         start = _start;
     }
 
@@ -140,6 +146,12 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
         return isPausable;
     }
 
+    /// @notice Get whether tokens are vested linearly between periods.
+    /// @return Whether tokens are vested linearly between periods.
+    function getIsLinear() external view returns (bool) {
+        return isLinear;
+    }
+
     /// @notice Get the start time of the vesting.
     /// @return The start time of the vesting.
     function getStart() external view returns (uint256) {
@@ -150,6 +162,12 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
     /// @return The duration of a period.
     function getPeriodDuration() external view returns (uint256) {
         return periodDuration;
+    }
+
+    /// @notice Get the duration of the cliff.
+    /// @return The duration of the cliff.
+    function getCliffDuration() external view returns (uint256) {
+        return cliffDuration;
     }
 
     /// @notice Get the amount of tokens vested per period.
@@ -193,8 +211,11 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
         uint256 total;
 
         // Sum all the tokens vested per period to obtain the total amount.
-        for (uint i = 0; i < vestedPerPeriod.length; i++) {
+        for (uint i = 0; i < vestedPerPeriod.length; ) {
             total += vestedPerPeriod[i];
+            unchecked {
+                ++i;
+            }
         }
 
         return total;
@@ -213,19 +234,23 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
             timestamp = stopTimestamp;
         }
 
+        uint256 cliff = start + cliffDuration;
+
         // If the current or stop timestamp was previous to the start time, nothing is vested.
-        if (timestamp < start) {
+        // Linear cliff duration is always 0 if the vesting is not linear.
+        // On non linear vestings, cliff duration can be simulated with periods that vest 0 tokens.
+        if (timestamp < cliff) {
             return 0;
         }
 
-        uint256 delta = timestamp - start;
+        uint256 delta = timestamp - cliff;
         // Divisions will always return truncated values.
-        // By just dividing the time from start with the duration of a period, we can obtain 
+        // By just dividing the time from start with the duration of a period, we can obtain
         // the amount of periods elapsed.
         uint256 elapsedPeriods = delta / periodDuration;
         uint256 vestedPerPeriodLength = vestedPerPeriod.length;
 
-        // Elapsed periods cannot be greater than the amount of periods defined to avoid extra 
+        // Elapsed periods cannot be greater than the amount of periods defined to avoid extra
         // iterations in the for loop.
         if (elapsedPeriods > vestedPerPeriodLength) {
             elapsedPeriods = vestedPerPeriodLength;
@@ -234,13 +259,16 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
         uint256 vested;
 
         // Add the vested amount for each period that has passed.
-        for (uint i = 0; i < elapsedPeriods; i++) {
+        for (uint i = 0; i < elapsedPeriods; ) {
             vested += vestedPerPeriod[i];
+            unchecked {
+                ++i;
+            }
         }
 
-        // If the vesting was defined as linear, we have to obtain the amount of tokens vested 
+        // If the vesting was defined as linear, we have to obtain the amount of tokens vested
         // relative to the time elapsed in the current period.
-        // If all periods have elapsed, it is unnecessary to do so because all tokens would 
+        // If all periods have elapsed, it is unnecessary to do so because all tokens would
         // have been vested.
         if (isLinear && elapsedPeriods < vestedPerPeriodLength) {
             // Get the total amount of tokens that will be vested in the current period.
@@ -251,7 +279,7 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
             // Reuse the variable to decrease gas usage.
             delta = timestamp - periodStart;
             // Get the amount of tokens vested relative to the time elapsed in the current period.
-            vested += delta * vestedThisPeriod / periodDuration;
+            vested += (delta * vestedThisPeriod) / periodDuration;
         }
 
         return vested;
