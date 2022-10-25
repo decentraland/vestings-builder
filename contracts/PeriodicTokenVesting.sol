@@ -118,7 +118,7 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
         _setToken(_token);
         _setPeriodDuration(_periodDuration);
         _setVestedPerPeriod(_vestedPerPeriod);
-        _setLinear(_linear);
+        _setLinear(_linear, _periodDuration, _vestedPerPeriod);
         isRevocable = _isRevocable;
         isPausable = _isPausable;
         start = _start;
@@ -464,13 +464,25 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
         vestedPerPeriod = _vestedPerPeriod;
     }
 
-    function _setLinear(Linear calldata _linear) private {
+    function _setLinear(
+        Linear calldata _linear,
+        uint256 _periodDuration,
+        uint256[] calldata _vestedPerPeriod
+    ) private {
         if (!_linear.enabled) {
             // Only allow cliff duration to be set if linear is disabled to avoid problems
             // when calculating the vesting.
             require(
                 _linear.cliffDuration == 0,
                 "PeriodicTokenVesting#_setLinear: LINEAR_NOT_ENABLED"
+            );
+        } else {
+            uint256 totalTime = _vestedPerPeriod.length * _periodDuration;
+
+            // Prevent the cliff duration to be longer than the whole vesting duration.
+            require(
+                _linear.cliffDuration <= totalTime,
+                "PeriodicTokenVesting#_setLinear: CLIFF_DURATION_EXCEEDS_TOTAL_TIME"
             );
         }
 
