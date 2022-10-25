@@ -568,7 +568,7 @@ describe("PeriodicTokenVesting", () => {
         .withArgs(extra.address, releaseAmount);
     });
 
-    it("should be able to release all tokens when more periods than the ones defined have passed", async () => {
+    it("should be able to release all tokens when all periods + 1 have elapsed", async () => {
       await token.connect(treasury).transfer(vesting.address, totalToVest);
 
       await helpers.time.setNextBlockTimestamp(
