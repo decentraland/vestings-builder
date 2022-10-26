@@ -103,6 +103,21 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
         uint256 _cliff,
         uint256[] calldata _vestedPerPeriod
     ) external initializer {
+        require(
+            _token != address(0),
+            "PeriodicTokenVesting#initialize: INVALID_TOKEN"
+        );
+
+        require(
+            _period != 0,
+            "PeriodicTokenVesting#initialize: INVALID_PERIOD_DURATION"
+        );
+
+        require(
+            _vestedPerPeriod.length != 0,
+            "PeriodicTokenVesting#initialize: INVALID_VESTED_PER_PERIOD_LENGTH"
+        );
+
         // Set the owner using the OwnableUpgradeable functions.
         __Ownable_init();
         transferOwnership(_owner);
@@ -112,14 +127,14 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
 
         // Set the rest of the initialization parameters
         _setBeneficiary(_beneficiary);
-        _setToken(_token);
-        _setPeriod(_period);
-        _setVestedPerPeriod(_vestedPerPeriod);
+        token = IERC20(_token);
         isRevocable = _isRevocable;
         isPausable = _isPausable;
         isLinear = _isLinear;
-        cliff = _cliff;
         start = _start;
+        period = _period;
+        cliff = _cliff;
+        vestedPerPeriod = _vestedPerPeriod;
     }
 
     /// @notice Get the beneficiary of the vested tokens.
@@ -432,32 +447,5 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
         beneficiary = _beneficiary;
 
         emit BeneficiaryUpdated(_beneficiary);
-    }
-
-    function _setToken(address _token) private {
-        require(
-            _token != address(0),
-            "PeriodicTokenVesting#_setToken: INVALID_TOKEN"
-        );
-
-        token = IERC20(_token);
-    }
-
-    function _setPeriod(uint256 _period) private {
-        require(
-            _period != 0,
-            "PeriodicTokenVesting#_setPeriod: INVALID_PERIOD_DURATION"
-        );
-
-        period = _period;
-    }
-
-    function _setVestedPerPeriod(uint256[] calldata _vestedPerPeriod) private {
-        require(
-            _vestedPerPeriod.length != 0,
-            "PeriodicTokenVesting#_setVestedPerPeriod: INVALID_VESTED_PER_PERIOD_LENGTH"
-        );
-
-        vestedPerPeriod = _vestedPerPeriod;
     }
 }
