@@ -234,20 +234,23 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
             timestamp = stopTimestamp;
         }
 
-        uint256 cliff = start + cliffDuration;
-
         // If the current or stop timestamp was previous to the start time, nothing is vested.
         // Linear cliff duration is always 0 if the vesting is not linear.
         // On non linear vestings, cliff duration can be simulated with periods that vest 0 tokens.
-        if (timestamp < cliff) {
+        if (timestamp < start + cliffDuration) {
             return 0;
         }
 
-        uint256 delta = timestamp - cliff;
+        uint256 delta = timestamp - start;
         // Divisions will always return truncated values.
         // By just dividing the time from start with the duration of a period, we can obtain
         // the amount of periods elapsed.
         uint256 elapsedPeriods = delta / periodDuration;
+
+        if (!isLinear) {
+            elapsedPeriods -= cliffDuration / periodDuration;
+        }
+
         uint256 vestedPerPeriodLength = vestedPerPeriod.length;
 
         // Elapsed periods cannot be greater than the amount of periods defined to avoid extra

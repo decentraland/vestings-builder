@@ -446,6 +446,66 @@ describe("PeriodicTokenVesting", () => {
 
       expect(await vesting.getVested()).to.equal(vestedPerPeriod[0]);
     });
+
+    it("should return correctly when the vesting is linear and the cliff is shorter than a period", async () => {
+      await preInitSnapshot.restore();
+
+      initParams.isLinear = true;
+      initParams.cliffDuration = initParams.periodDuration / 2;
+      initParamsList = Object.values(initParams);
+
+      await vesting.initialize(...initParamsList);
+
+      await helpers.time.setNextBlockTimestamp(initParams.start + initParams.cliffDuration - 1);
+
+      await helpers.mine();
+
+      expect(await vesting.getVested()).to.equal(Zero);
+
+      await helpers.time.setNextBlockTimestamp(initParams.start + initParams.cliffDuration);
+
+      await helpers.mine();
+
+      expect(await vesting.getVested()).to.equal(vestedPerPeriod[0].div(2));
+
+      await helpers.time.setNextBlockTimestamp(
+        initParams.start + initParams.periodDuration * initParams.vestedPerPeriod.length
+      );
+
+      await helpers.mine();
+
+      expect(await vesting.getVested()).to.equal(totalToVest);
+    });
+
+    it("should return correctly when the vesting is linear and the cliff is longer than a period", async () => {
+      await preInitSnapshot.restore();
+
+      initParams.isLinear = true;
+      initParams.cliffDuration = initParams.periodDuration * 1.5;
+      initParamsList = Object.values(initParams);
+
+      await vesting.initialize(...initParamsList);
+
+      await helpers.time.setNextBlockTimestamp(initParams.start + initParams.cliffDuration - 1);
+
+      await helpers.mine();
+
+      expect(await vesting.getVested()).to.equal(Zero);
+
+      await helpers.time.setNextBlockTimestamp(initParams.start + initParams.cliffDuration);
+
+      await helpers.mine();
+
+      expect(await vesting.getVested()).to.equal(vestedPerPeriod[0].add(vestedPerPeriod[1].div(2)));
+
+      await helpers.time.setNextBlockTimestamp(
+        initParams.start + initParams.periodDuration * initParams.vestedPerPeriod.length
+      );
+
+      await helpers.mine();
+
+      expect(await vesting.getVested()).to.equal(totalToVest);
+    });
   });
 
   describe("release", () => {
