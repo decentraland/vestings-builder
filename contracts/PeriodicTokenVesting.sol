@@ -226,7 +226,6 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
     /// If paused or revoked, the amount returned will be the amount vested until pause or revoke.
     /// @return The amount of tokens currently vested.
     function getVested() public view returns (uint256) {
-        // The current block timestamp will be used to calculate how much is vested until now.
         uint256 timestamp = block.timestamp;
 
         // If the vesting was revoked or paused, use the stop timestamp instead to check how much was vested up to that time.
@@ -234,22 +233,16 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
             timestamp = stopTimestamp;
         }
 
-        // If the current or stop timestamp was previous to the start time, nothing is vested.
-        // Linear cliff duration is always 0 if the vesting is not linear.
-        // On non linear vestings, cliff duration can be simulated with periods that vest 0 tokens.
+        // If the current or stop timestamp was previous to the start or cliff, nothing is vested.
         if (timestamp < start + cliffDuration) {
             return 0;
         }
 
         uint256 delta = timestamp - start;
-        // Divisions will always return truncated values.
-        // By just dividing the time from start with the duration of a period, we can obtain
-        // the amount of periods elapsed.
         uint256 elapsedPeriods = delta / periodDuration;
         uint256 vestedPerPeriodLength = vestedPerPeriod.length;
 
-        // Elapsed periods cannot be greater than the amount of periods defined to avoid extra
-        // iterations in the for loop.
+        // Cap the elapsed periods to the length of the array to avoid extra loops.
         if (elapsedPeriods > vestedPerPeriodLength) {
             elapsedPeriods = vestedPerPeriodLength;
         }
@@ -264,19 +257,11 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
             }
         }
 
-        // If the vesting was defined as linear, we have to obtain the amount of tokens vested
-        // relative to the time elapsed in the current period.
-        // If all periods have elapsed, it is unnecessary to do so because all tokens would
-        // have been vested.
+        // Add the vested amount relative to the elapsed time in the current period
         if (isLinear && elapsedPeriods < vestedPerPeriodLength) {
-            // Get the total amount of tokens that will be vested in the current period.
             uint256 vestedThisPeriod = vestedPerPeriod[elapsedPeriods];
-            // Get the time the period started.
             uint256 periodStart = start + (elapsedPeriods * periodDuration);
-            // Get the amount of time that has elapsed from the start of the period.
-            // Reuse the variable to decrease gas usage.
             delta = timestamp - periodStart;
-            // Get the amount of tokens vested relative to the time elapsed in the current period.
             vested += (delta * vestedThisPeriod) / periodDuration;
         }
 
