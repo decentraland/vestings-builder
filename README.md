@@ -31,11 +31,19 @@ The most common vestings would just accrue vested tokens linearly in a given per
 
 By having the possibility to define periods and how many tokens each period vests, one can create a program in which custom amount of tokens become releasable as each period progresses.
 
+## Test
+
+Install dependencies with `npm ci`.
+
+Compile contracts with `npx hardhat compile`.
+
+Run tests defined in the `./test` directory with `npx hardhat test`.
+
+You can run tests with coverage report with `npx hardhat coverage`.
+
 ## initialize
 
 This contract was intended to be used through a minimal proxy. And as most contracts being deployed this way, it has an initialize function to initialize the contract with the configuration needed.
-
-The initialize function will receive all
 
 ```sol
 function initialize(
@@ -81,52 +89,41 @@ Has to be false, this is because we want tokens to be vested quarterly and not e
 
 ### periodDuration
 
-Has to be 7889400 seconds, which is a quarter of a year. As tokens are vested quarterly, we will be defining periods that last a quarter of a year.
+Has to be a quarter of a year (7889400 seconds). As tokens are vested quarterly, we will be defining periods that have this duration each.
 
 ### cliffDuration
 
-Has to be 23668200 which is three times the periodDuration. This is because in a non linear contract, we want the first defined period to start as soon as the cliff ends. In this case, the first period starts after the equivalent of 3 periods in time has passed.
+Has to be a year (31557600 seconds). The beneficiary will not vest anything for the first year.
 
 ### vestedPerPeriod
 
-Will contain how much tokens will be vested after each period passes. Each period lasts a quarter. So in a vesting of 4 years there will be 16 quarters, which are 16 periods we have to define.
+Contains how much tokens will be vested after each period passes. Each period lasts a quarter and in 4 years, which is the total duration of the vesting, there are 16 quarters. This means we have to define how much is vested on each of these 16 periods.
 
 25% will be vested on the first 3 years and 75% will be released on the last year. Meaning 2500 tokens are vested on the first 3 years and 7500 on the last one.
 
 We need to configure 16 periods to reflect these values, so the first 2.5k tokens will be distributed in the first 12 periods and the 7.5k tokens in the last 4 periods. Leaving us with an array that looks like the following:
 
 ```js
-// Represented in ether but should be defined in wei.
 [
   208.33, 208.33, 208.33, 208.33, 208.33, 208.33, 208.33, 208.33, 208.33, 208.33, 208.33, 208.33, 1875, 1875, 1875, 1875,
 ];
-// All values add up to 10k, which is the amount of tokens we want the contract to vest in total
+// When initializing the vesting for real the values will be defined in wei, these values are just for simplicity.
+// All values in the array will add up to 10K
 ```
 
-However, we mentioned that the cliff until the first period starts will last the equivalent of 3 periods. This means that the first 3 values in the array can be removed.
+Every quarter that passes will vest the amount defined for the corresponding period, always taking into consideration the cliff. In this example, when the year elapses, 208.33 * 4 will be vested as the cliff is over. Then, every quarter that passes will vest the extra tokens it has defined until all periods are over and the 10k can be released.
 
-```js
-[208.33, 208.33, 208.33, 208.33, 208.33, 208.33, 208.33, 208.33, 208.33, 1875, 1875, 1875, 1875];
-```
-
-But the total is not 10k anymore you might have noticed. This can be fixed by updating the value of the first element to vest the equivalent to that period and the previous 3.
-
-```js
-[833.32, 208.33, 208.33, 208.33, 208.33, 208.33, 208.33, 208.33, 208.33, 1875, 1875, 1875, 1875];
-```
-
-Now, when the first year passes, 833.32 will be vested, each period for the next 2 years will vest 208.33 each, and the last year will vest 1875 on each period. Achieving the configuration we desired.
 
 ## Example 2
 
 We might want to create a vesting with the following conditions:
 
-- 2 years duration
-- half a year cliff
-- 10k tokens in total to be vested
+- 3 years duration
+- A year and a half of cliff
+- 2k are vested the first year, 4k the second, and 6k the third, for a total of 12k tokens
 - Tokens are vested every second
 
-This is much more simple than the first example, and the data provided will be as follows:
+This kind of vesting might never exist as a real use case, however, this just shows the flexibility this contract provides.
 
 ### isLinear
 
@@ -134,18 +131,19 @@ Has to be true because we want tokens to be vested every second, not by quarters
 
 ### periodDuration
 
-As the vesting is linear and vests proportionally to how much time has passed since the start, we only need one period, meaning this value will be the duration of the whole vesting, 2 years which are 63115200 seconds.
+We are asked to vest different amounts on each year, so we will need to configure 3 different periods. As we have 3 periods in a vesting of 3 years, the period duration should be of a year.
 
 ### cliffDuration
 
-There is half a year of cliff, so the value for this should be half a year (15778800 seconds).
+The cliff has to be of a year and a half so that's it.
 
 ### vestedPerPeriod
 
-As mentioned before, we only have 1 period, so the value for this would be an array with only just 1 value as follows:
+We have been asked to vest different amount of tokens each year of the vesting, so we will need to defined 3 different periods.
 
 ```js
-[10000];
+[2000, 4000, 6000];
+// All values in the array will add up to 12K
 ```
 
-This vesting is linear. Meaning that it will vest linearly for each passing second. before the cliff ends, it will vest 0, but once the cliff ends, it will vest 2500 tokens, and as the time progresses it will vest more until the 2 years have elapsed and the 10k are all vested.
+We have a cliff of a year and a half, so until that time elapses, the contract will vest nothing. Once the year and a half passes, the contract will vest what corresponds to that time. It will vest all the tokens from the first period as it has elapsed completely, and will vest half of the tokens defined in the second period, as only half of that period has passed.
