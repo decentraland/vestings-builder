@@ -33,10 +33,10 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
     uint256 private start;
 
     /// @dev The duration in seconds of a vesting period.
-    uint256 private periodDuration;
+    uint256 private period;
 
     /// @dev The duration in seconds of the cliff.
-    uint256 private cliffDuration;
+    uint256 private cliff;
 
     /// @dev The number of tokens vested on each period.
     uint256[] private vestedPerPeriod;
@@ -45,7 +45,7 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
     uint256 private released;
 
     /// @dev The timestamp in which the vesting was paused or revoked.
-    uint256 private stopTimestamp;
+    uint256 private stop;
 
     event BeneficiaryUpdated(address indexed _newBeneficiary);
     event Revoked();
@@ -88,8 +88,8 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
     /// @param _isPausable Determines if the vesting can be paused.
     /// @param _isLinear Determines if the tokens are vested linearly between periods.
     /// @param _start The time in which the vesting starts.
-    /// @param _periodDuration The duration in seconds of a vesting period.
-    /// @param _cliffDuration The duration in seconds of the cliff.
+    /// @param _period The duration in seconds of a vesting period.
+    /// @param _cliff The duration in seconds of the cliff.
     /// @param _vestedPerPeriod The number of tokens vested on each period.
     function initialize(
         address _owner,
@@ -99,8 +99,8 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
         bool _isPausable,
         bool _isLinear,
         uint256 _start,
-        uint256 _periodDuration,
-        uint256 _cliffDuration,
+        uint256 _period,
+        uint256 _cliff,
         uint256[] calldata _vestedPerPeriod
     ) external initializer {
         // Set the owner using the OwnableUpgradeable functions.
@@ -113,12 +113,12 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
         // Set the rest of the initialization parameters
         _setBeneficiary(_beneficiary);
         _setToken(_token);
-        _setPeriodDuration(_periodDuration);
+        _setPeriod(_period);
         _setVestedPerPeriod(_vestedPerPeriod);
         isRevocable = _isRevocable;
         isPausable = _isPausable;
         isLinear = _isLinear;
-        cliffDuration = _cliffDuration;
+        cliff = _cliff;
         start = _start;
     }
 
@@ -160,14 +160,14 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
 
     /// @notice Get the duration of a period.
     /// @return The duration of a period.
-    function getPeriodDuration() external view returns (uint256) {
-        return periodDuration;
+    function getPeriod() external view returns (uint256) {
+        return period;
     }
 
     /// @notice Get the duration of the cliff.
     /// @return The duration of the cliff.
-    function getCliffDuration() external view returns (uint256) {
-        return cliffDuration;
+    function getCliff() external view returns (uint256) {
+        return cliff;
     }
 
     /// @notice Get the amount of tokens vested per period.
@@ -187,8 +187,8 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
     /// If not, and it is paused, it will return the timestamp when the pause was made.
     /// If neither, the timestamp returned will be 0.
     /// @return The timestamp when the vesting was paused or revoked.
-    function getStopTimestamp() external view returns (uint256) {
-        return stopTimestamp;
+    function getStop() external view returns (uint256) {
+        return stop;
     }
 
     /// @notice Get if the vesting is revoked.
@@ -229,17 +229,17 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
         uint256 timestamp = block.timestamp;
 
         // If the vesting was revoked or paused, use the stop timestamp instead to check how much was vested up to that time.
-        if (stopTimestamp != 0) {
-            timestamp = stopTimestamp;
+        if (stop != 0) {
+            timestamp = stop;
         }
 
         // If the current or stop timestamp was previous to the start or cliff, nothing is vested.
-        if (timestamp < start + cliffDuration) {
+        if (timestamp < start + cliff) {
             return 0;
         }
 
         uint256 delta = timestamp - start;
-        uint256 elapsedPeriods = delta / periodDuration;
+        uint256 elapsedPeriods = delta / period;
         uint256 vestedPerPeriodLength = vestedPerPeriod.length;
 
         // Cap the elapsed periods to the length of the array to avoid extra loops.
@@ -260,9 +260,9 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
         // Add the vested amount relative to the elapsed time in the current period
         if (isLinear && elapsedPeriods < vestedPerPeriodLength) {
             uint256 vestedThisPeriod = vestedPerPeriod[elapsedPeriods];
-            uint256 periodStart = start + (elapsedPeriods * periodDuration);
+            uint256 periodStart = start + (elapsedPeriods * period);
             delta = timestamp - periodStart;
-            vested += (delta * vestedThisPeriod) / periodDuration;
+            vested += (delta * vestedThisPeriod) / period;
         }
 
         return vested;
@@ -310,7 +310,7 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
         require(isRevocable, "PeriodicTokenVesting#revoke: NON_REVOCABLE");
 
         isRevoked = true;
-        stopTimestamp = block.timestamp;
+        stop = block.timestamp;
 
         emit Revoked();
     }
@@ -411,14 +411,14 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
     function pause() external onlyOwner whenNotRevoked {
         require(isPausable, "PeriodicTokenVesting#pause: NON_PAUSABLE");
 
-        stopTimestamp = block.timestamp;
+        stop = block.timestamp;
 
         _pause();
     }
 
     /// @notice Unpause the vesting.
     function unpause() external onlyOwner whenNotRevoked {
-        stopTimestamp = 0;
+        stop = 0;
 
         _unpause();
     }
@@ -443,13 +443,13 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
         token = IERC20(_token);
     }
 
-    function _setPeriodDuration(uint256 _periodDuration) private {
+    function _setPeriod(uint256 _period) private {
         require(
-            _periodDuration != 0,
-            "PeriodicTokenVesting#_setPeriodDuration: INVALID_PERIOD_DURATION"
+            _period != 0,
+            "PeriodicTokenVesting#_setPeriod: INVALID_PERIOD_DURATION"
         );
 
-        periodDuration = _periodDuration;
+        period = _period;
     }
 
     function _setVestedPerPeriod(uint256[] calldata _vestedPerPeriod) private {
