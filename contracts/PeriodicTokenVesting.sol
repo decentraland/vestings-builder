@@ -246,11 +246,6 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
         // By just dividing the time from start with the duration of a period, we can obtain
         // the amount of periods elapsed.
         uint256 elapsedPeriods = delta / periodDuration;
-
-        if (!isLinear) {
-            elapsedPeriods -= cliffDuration / periodDuration;
-        }
-
         uint256 vestedPerPeriodLength = vestedPerPeriod.length;
 
         // Elapsed periods cannot be greater than the amount of periods defined to avoid extra

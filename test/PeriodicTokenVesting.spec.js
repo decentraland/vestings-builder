@@ -243,15 +243,13 @@ describe("PeriodicTokenVesting", () => {
 
       await vesting.initialize(...initParamsList);
 
-      await helpers.time.setNextBlockTimestamp(
-        initParams.start + initParams.cliffDuration + initParams.periodDuration - 1
-      );
+      await helpers.time.setNextBlockTimestamp(initParams.start + initParams.cliffDuration - 1);
 
       await helpers.mine();
 
       expect(await vesting.getVested()).to.equal(0);
 
-      await helpers.time.setNextBlockTimestamp(initParams.start + initParams.cliffDuration + initParams.periodDuration);
+      await helpers.time.setNextBlockTimestamp(initParams.start + initParams.cliffDuration);
 
       await helpers.mine();
 
@@ -283,15 +281,13 @@ describe("PeriodicTokenVesting", () => {
 
       await vesting.initialize(...initParamsList);
 
-      await helpers.time.setNextBlockTimestamp(
-        initParams.start + initParams.cliffDuration + initParams.periodDuration - 1
-      );
+      await helpers.time.setNextBlockTimestamp(initParams.start + initParams.cliffDuration - 1);
 
       await vesting.connect(owner).revoke();
 
       expect(await vesting.getVested()).to.equal(0);
 
-      await helpers.time.setNextBlockTimestamp(initParams.start + initParams.cliffDuration + initParams.periodDuration);
+      await helpers.time.setNextBlockTimestamp(initParams.start + initParams.cliffDuration);
 
       await helpers.mine();
 
@@ -323,15 +319,13 @@ describe("PeriodicTokenVesting", () => {
 
       await vesting.initialize(...initParamsList);
 
-      await helpers.time.setNextBlockTimestamp(
-        initParams.start + initParams.cliffDuration + initParams.periodDuration - 1
-      );
+      await helpers.time.setNextBlockTimestamp(initParams.start + initParams.cliffDuration - 1);
 
       await vesting.connect(owner).pause();
 
       expect(await vesting.getVested()).to.equal(0);
 
-      await helpers.time.setNextBlockTimestamp(initParams.start + initParams.cliffDuration + initParams.periodDuration);
+      await helpers.time.setNextBlockTimestamp(initParams.start + initParams.cliffDuration);
 
       await helpers.mine();
 
