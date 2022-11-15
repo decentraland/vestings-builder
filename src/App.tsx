@@ -43,13 +43,19 @@ const ADDRESSES: {
     FACTORY: '0x64c9f713a743458ab22ec49d88dd00621f528786',
     MANA: '0x28bce5263f5d7f4eb7e8c6d5d78275ca455bac63',
   },
+  5: {
+    IMPLEMENTATION: '0xa1c496c3beca1832a8434ac77ee3a1a53881c12e',
+    FACTORY: '0x11a970e744ff69db8f461c2d0fc91d4293914301',
+    MANA: '0xe7fdae84acaba2a5ba817b6e6d8a2d415dbfedbe',
+  },
 }
 const LINKS: {
   [key: number]: string
 } = {
   1: 'https://etherscan.io/tx/',
   3: 'https://ropsten.etherscan.io/tx/',
-  4: 'https://rinkeby.etherscan.io/tx/'
+  4: 'https://rinkeby.etherscan.io/tx/',
+  5: 'https://goerli.etherscan.io/tx/'
 }
 
 export const injected = new InjectedConnector({
