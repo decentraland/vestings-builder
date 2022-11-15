@@ -9,7 +9,6 @@ import {
   Segment,
   Close,
 } from 'decentraland-ui'
-import 'decentraland-ui/lib/styles.css'
 import React, { useEffect, useState, useCallback } from 'react'
 import { Contract } from '@ethersproject/contracts'
 import { randomBytes } from '@ethersproject/random'
