@@ -151,7 +151,7 @@ function CreateInBatch () {
 
        setTxHash(tx.hash)
      } catch (e) {
-       console.error(e.message)
+       console.error((e as Error).message)
        setTxHash(null)
      } finally {
        setLoading(false)
