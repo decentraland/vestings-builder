@@ -105,8 +105,8 @@ function CreateBatch() {
         const _beneficiary = (vestingData as any).beneficiary;
         const _token = (vestingData as any).token;
         const _revocable = (vestingData as any).revocable.toLowerCase() === "yes";
-        const _pausable = (vestingData as any).revocable.toLowerCase() === "yes";
-        const _linear = (vestingData as any).revocable.toLowerCase() === "yes";
+        const _pausable = (vestingData as any).pausable.toLowerCase() === "yes";
+        const _linear = (vestingData as any).linear.toLowerCase() === "yes";
         const _start = (vestingData as any).start_date;
         const _period = (vestingData as any).period_duration;
         const _cliff = (vestingData as any).cliff_duration;
