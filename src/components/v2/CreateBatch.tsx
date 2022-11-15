@@ -1,14 +1,13 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { Button, Container, Footer, Loader, Modal, Close } from "decentraland-ui";
+import { Button, Footer, Loader, Modal, Close } from "decentraland-ui";
+import { ethers } from "ethers";
 import Web3Modal from "web3modal";
 import { Contract } from "@ethersproject/contracts";
 import { randomBytes } from "@ethersproject/random";
 import { useWeb3React } from "@web3-react/core";
 import { InjectedConnector } from "@web3-react/injected-connector";
-import vestingABI from "../../abis/vesting.json";
+import vestingABI from "../../abis/periodicTokenVesting.json";
 import batchVestingABI from "../../abis/batchVesting.json";
-import "decentraland-ui/lib/styles.css";
-
 import "./CreateBatch.css";
 
 const ADDRESSES: {
@@ -19,23 +18,11 @@ const ADDRESSES: {
     MANA: string;
   };
 } = {
-  1: {
-    BATCH_VESTINGS: "0xc57185366bcda81cde363380e2099758712038d0",
-    IMPLEMENTATION: "0x42f32e19365d8045661a006408cc6d1064039fbf",
-    FACTORY: "0xe357273545c152f07afe2c38257b7b653fd3f6d0",
-    MANA: "0x0f5d2fb29fb7d3cfee444a200298f468908cc942",
-  },
-  3: {
-    BATCH_VESTINGS: "0xedbea1174b892f88a836f61de395f5f155d4d2a9",
-    IMPLEMENTATION: "0xc243b243a2033348730420ea55239767802a19d0",
-    FACTORY: "0xcbfa36f59246ae43cb827a77f6ca955b93dd6042",
-    MANA: "0x2a8fd99c19271f4f04b1b7b9c4f7cf264b626edb",
-  },
-  4: {
-    BATCH_VESTINGS: "",
-    IMPLEMENTATION: "0x8493bb6ae17e12c062b0eb1fe780cc0b2df16bb2",
-    FACTORY: "0x64c9f713a743458ab22ec49d88dd00621f528786",
-    MANA: "0x28bce5263f5d7f4eb7e8c6d5d78275ca455bac63",
+  5: {
+    BATCH_VESTINGS: "0x651440486194aeca2cfff6e344bd604dda8a2d7f",
+    IMPLEMENTATION: "0x9341ff4a27d7d0bbf67a6dbaa1b3454c6c9948f5",
+    FACTORY: "0x11a970e744ff69db8f461c2d0fc91d4293914301",
+    MANA: "0xe7fdae84acaba2a5ba817b6e6d8a2d415dbfedbe",
   },
 };
 const LINKS: {
@@ -44,20 +31,24 @@ const LINKS: {
   1: "https://etherscan.io/tx/",
   3: "https://ropsten.etherscan.io/tx/",
   4: "https://rinkeby.etherscan.io/tx/",
+  5: "https://goerli.etherscan.io/tx/",
 };
 
 export type dataCSV = {
   owner: string;
-  token: string;
   beneficiary: string;
-  start_date: number;
-  cliff: number;
-  duration: number;
-  revocable: boolean;
+  token: string;
+  revocable: string;
+  pausable: string;
+  linear: string;
+  start_date: string;
+  period_duration: string;
+  cliff_duration: string;
+  vested_per_period: string;
 };
 
 export const injected = new InjectedConnector({
-  supportedChainIds: [1, 3, 4, 5, 42],
+  supportedChainIds: [5],
 });
 
 function CreateBatch() {
@@ -80,7 +71,7 @@ function CreateBatch() {
     const array = csvRows.map((i) => {
       const values = i.split(",");
       const obj: dataCSV = csvHeader.reduce((object: any, header: string, index: number) => {
-        object[header.trim().toLowerCase().replace(" ", "_").replace("\r", "")] = values[index].replace("\r", "");
+        object[header.trim().toLowerCase().replaceAll(" ", "_").replace("\r", "")] = values[index].replace("\r", "");
         return object;
       }, {});
       return obj;
@@ -111,21 +102,29 @@ function CreateBatch() {
       for (const vestingData of array) {
         console.log(vestingData);
         const _owner = (vestingData as any).owner;
-        const _token = (vestingData as any).token;
         const _beneficiary = (vestingData as any).beneficiary;
-        const _start = (vestingData as any).start_date;
-        const _cliff = (vestingData as any).cliff;
-        const _duration = (vestingData as any).duration;
+        const _token = (vestingData as any).token;
         const _revocable = (vestingData as any).revocable.toLowerCase() === "yes";
+        const _pausable = (vestingData as any).revocable.toLowerCase() === "yes";
+        const _linear = (vestingData as any).revocable.toLowerCase() === "yes";
+        const _start = (vestingData as any).start_date;
+        const _period = (vestingData as any).period_duration;
+        const _cliff = (vestingData as any).cliff_duration;
+        const _vestedPerPeriod = (vestingData as any).vested_per_period
+          .split(":")
+          .map((ether: string) => ethers.utils.parseEther(ether));
 
         const { data } = await vestingImplementation.populateTransaction.initialize(
           _owner,
           _beneficiary,
-          _start,
-          _cliff,
-          _duration,
+          _token,
           _revocable,
-          _token
+          _pausable,
+          _linear,
+          _start,
+          _period,
+          _cliff,
+          _vestedPerPeriod
         );
 
         inputData.push(data);
@@ -188,38 +187,43 @@ function CreateBatch() {
   const headerKeys = Object.keys(Object.assign({}, ...array));
 
   return (
-    <Container>
-      <div className="App">
-        <Loader active={loading} size="big" />
-        <Modal size="large" open={!!txHash} closeIcon={<Close onClick={closeModal} />}>
-          <Modal.Header>Transaction sent!</Modal.Header>
-          <Modal.Content>
-            <>
-              <a href={`${LINKS[chainId!]}${txHash}`} rel="noopener noreferrer" target="_blank">
-                {`${LINKS[chainId!]}${txHash}`}
-              </a>
-            </>
-          </Modal.Content>
-        </Modal>
-        <h1>Create Vestings By CSV</h1>
-        <h2>Example:</h2>
-        <h4>Owner, Token, Beneficiary, Start Date, Cliff, Duration, Revocable</h4>
+    <div style={{ margin: "1rem" }}>
+      <Loader active={loading} size="big" />
+      <Modal size="large" open={!!txHash} closeIcon={<Close onClick={closeModal} />}>
+        <Modal.Header>Transaction sent!</Modal.Header>
+        <Modal.Content>
+          <>
+            <a href={`${LINKS[chainId!]}${txHash}`} rel="noopener noreferrer" target="_blank">
+              {`${LINKS[chainId!]}${txHash}`}
+            </a>
+          </>
+        </Modal.Content>
+      </Modal>
+      <h1>Create Vestings By CSV</h1>
+      <h2>Example:</h2>
+      <div style={{ overflowX: "auto" }}>
+        <h4>
+          Owner,Beneficiary,Token,Revocable,Pausable,Linear,Start Date,Period Duration,Cliff Duration,Vested Per Period
+        </h4>
         <p>
-          0x8493bb6ae17e12c062b0eb1fe780cc0b2df16bb2,0x0f5d2fb29fb7d3cfee444a200298f468908cc942,0x8493bb6ae17e12c062b0eb1fe780cc0b2df16bb2,1234567968,129293,129283,Yes
+          0x24e5F44999c151f08609F8e27b2238c773C4D020,0x2f89eC84e0413950d9ADF8e56dd56c2B2f5066cb,0xe7fdae84acaba2a5ba817b6e6d8a2d415dbfedbe,Yes,No,No,1656331200,7884000,31540000,1562.5:1562.5:1562.5:1562.5:1562.5:1562.5:1562.5:1562.5:1562.5:1562.5:1562.5:1562.5:1562.5:1562.5:1562.5:1562.5
         </p>
-        <p style={{ marginBottom: "30px" }}>
-          <b>Start Date, Cliff, and Duration in timestamp</b>
-        </p>
-        <form>
-          <input type={"file"} id={"csvFileInput"} accept={".csv"} onChange={handleOnChange} />
-
-          <Button primary id="submit" onClick={handleOnSubmit} disabled={!file}>
-            Process CSV
-          </Button>
-        </form>
-
+      </div>
+      <p style={{ marginTop: 30, marginBottom: "30px" }}>
+        <b>Start Date, Period Duration and Cliff Duration in seconds</b>
         <br />
+        <b>Vested Per Period amount in ether, not wei. For example: 1 MANA instead of 1e18 MANA</b>
+      </p>
+      <form>
+        <input type={"file"} id={"csvFileInput"} accept={".csv"} onChange={handleOnChange} />
 
+        <Button primary id="submit" onClick={handleOnSubmit} disabled={!file}>
+          Process CSV
+        </Button>
+      </form>
+
+      <br />
+      <div style={{ overflowX: "auto" }}>
         <table>
           <thead>
             <tr key={"header"}>
@@ -239,12 +243,12 @@ function CreateBatch() {
             ))}
           </tbody>
         </table>
-        <Button primary id="submit" onClick={sendTx} disabled={!array.length}>
-          Create Vesting Contract
-        </Button>
-        <Footer></Footer>
       </div>
-    </Container>
+      <Button primary id="submit" onClick={sendTx} disabled={!array.length}>
+        Create Vesting Contract
+      </Button>
+      <Footer></Footer>
+    </div>
   );
 }
 export default CreateBatch;
