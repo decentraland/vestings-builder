@@ -170,7 +170,7 @@ function CreateBatch() {
     if (chainId && !batchVestingAddress) {
       setBatchVestingAddress(ADDRESSES[chainId].BATCH_VESTINGS);
     }
-  }, [chainId]);
+  }, [chainId, batchVestingAddress]);
 
   useEffect(() => {
     activate(injected);
