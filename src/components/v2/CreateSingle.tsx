@@ -5,11 +5,12 @@ import { randomBytes } from "@ethersproject/random";
 import Web3Modal from "web3modal";
 import { useWeb3React } from "@web3-react/core";
 import { InjectedConnector } from "@web3-react/injected-connector";
-import vestingABI from "../../abis/vesting.json";
+import vestingABI from "../../abis/periodicTokenVesting.json";
 import factoryABI from "../../abis/factory.json";
+import { ethers } from "ethers";
 
 const SECONDS_TO_YEARS = 365 * 24 * 60 * 60;
-const SECONDS_TO_MONTHS = 30 * 24 * 60 * 60;
+
 const ADDRESSES: {
   [key: number]: {
     IMPLEMENTATION: string;
@@ -17,48 +18,52 @@ const ADDRESSES: {
     MANA: string;
   };
 } = {
-  1: {
-    IMPLEMENTATION: "0x42f32e19365d8045661a006408cc6d1064039fbf",
-    FACTORY: "0xe357273545c152f07afe2c38257b7b653fd3f6d0",
-    MANA: "0x0f5d2fb29fb7d3cfee444a200298f468908cc942",
-  },
-  3: {
-    IMPLEMENTATION: "0xc243b243a2033348730420ea55239767802a19d0",
-    FACTORY: "0xcbfa36f59246ae43cb827a77f6ca955b93dd6042",
-    MANA: "0x2a8fd99c19271f4f04b1b7b9c4f7cf264b626edb",
-  },
-  4: {
-    IMPLEMENTATION: "0x8493bb6ae17e12c062b0eb1fe780cc0b2df16bb2",
-    FACTORY: "0x64c9f713a743458ab22ec49d88dd00621f528786",
-    MANA: "0x28bce5263f5d7f4eb7e8c6d5d78275ca455bac63",
+  5: {
+    IMPLEMENTATION: "0x9341ff4a27d7d0bbf67a6dbaa1b3454c6c9948f5",
+    FACTORY: "0x11a970e744ff69db8f461c2d0fc91d4293914301",
+    MANA: "0xe7fdae84acaba2a5ba817b6e6d8a2d415dbfedbe",
   },
 };
 const LINKS: {
   [key: number]: string;
 } = {
   1: "https://etherscan.io/tx/",
-  3: "https://ropsten.etherscan.io/tx/",
-  4: "https://rinkeby.etherscan.io/tx/",
+  5: "https://goerli.etherscan.io/tx/",
 };
 
 export const injected = new InjectedConnector({
-  supportedChainIds: [1, 3, 4, 5, 42],
+  supportedChainIds: [5],
 });
 
 function CreateSingle() {
   var params = new URLSearchParams(window.location.search);
 
+  const { library, chainId, account, activate } = useWeb3React();
+
   const [loading, setLoading] = useState(false);
   const [txHash, setTxHash] = useState(null);
-  const [startDate, setStartDate] = useState<Date | string>(
-    params.get("start") || new Date().toISOString().split("T")[0]
-  );
-  const [cliff, setCliff] = useState(Number(params.get("cliff")) || 1.5 * SECONDS_TO_YEARS);
-  const [duration, setDuration] = useState(Number(params.get("duration")) || 365 * 5 * 24 * 60 * 60);
-  const [ethAddress, setEth] = useState(params.get("beneficiary") || "");
-  const [token, setToken] = useState(params.get("token") || ADDRESSES[1].MANA);
+  const [owner, setOwner] = useState(params.get("owner") || "");
+  const [beneficiary, setBeneficiary] = useState(params.get("beneficiary") || "");
+  const [token, setToken] = useState(params.get("token") || "");
   const [revocable, setRevocable] = useState(params.get("revocable") !== "no");
-  const { library, chainId, account, activate } = useWeb3React();
+  const [pausable, setPausable] = useState(params.get("pausable") !== "no");
+  const [linear, setLinear] = useState(params.get("linear") !== "no");
+  const [start, setStart] = useState<string>(params.get("start") || new Date().toISOString().split("T")[0]);
+  const [period, setPeriod] = useState(Number(params.get("period")) || Math.trunc(0.25 * SECONDS_TO_YEARS));
+  const [cliff, setCliff] = useState(Number(params.get("cliff")) || 1 * SECONDS_TO_YEARS);
+  const [vestedPerPeriod, setVestedPerPeriod] = useState(params.get("vestedPerPeriod") || "");
+
+  useEffect(() => {
+    if (chainId && !token) {
+      setToken(ADDRESSES[chainId].MANA);
+    }
+  }, [chainId, token]);
+
+  useEffect(() => {
+    if (account && !owner) {
+      setOwner(account);
+    }
+  }, [account, owner]);
 
   useEffect(() => {
     activate(injected);
@@ -98,18 +103,29 @@ function CreateSingle() {
         factoryABI,
         library.getSigner(account).connectUnchecked()
       );
-      const _beneficiary = ethAddress;
-      const _start = Math.round(new Date(startDate).getTime() / 1000);
-      const _revocable = revocable;
+
+      const _owner = owner;
+      const _beneficiary = beneficiary;
       const _token = token;
+      const _revocable = revocable;
+      const _pausable = pausable;
+      const _linear = linear;
+      const _start = Math.round(new Date(start).getTime() / 1000);
+      const _cliff = cliff;
+      const _period = period;
+      const _vestedPerPeriod = vestedPerPeriod.split(",").map((val) => ethers.utils.parseEther(val));
+
       const { data } = await vestingImplementation.populateTransaction.initialize(
-        account,
+        _owner,
         _beneficiary,
-        _start,
-        cliff,
-        duration,
+        _token,
         _revocable,
-        _token
+        _pausable,
+        _linear,
+        _start,
+        _period,
+        _cliff,
+        _vestedPerPeriod
       );
 
       const tx = await vestingFactory.createVesting(vestingImplementation.address, randomBytes(32), data, {
@@ -123,16 +139,28 @@ function CreateSingle() {
     } finally {
       setLoading(false);
     }
-  }, [account, chainId, cliff, duration, ethAddress, library, startDate, revocable, token, loading]);
+  }, [
+    account,
+    chainId,
+    cliff,
+    period,
+    beneficiary,
+    library,
+    start,
+    revocable,
+    token,
+    loading,
+    owner,
+    linear,
+    pausable,
+    vestedPerPeriod,
+  ]);
 
   const closeModal = useCallback(() => {
     setTxHash(null);
   }, []);
 
-  const estimateTime = (seconds: number) =>
-    seconds >= SECONDS_TO_YEARS
-      ? `about ${(seconds / SECONDS_TO_YEARS).toFixed(1)} years`
-      : `about ${(seconds / SECONDS_TO_MONTHS).toFixed(1)} months`;
+  const estimateTime = (seconds: number) => `about ${(seconds / SECONDS_TO_YEARS).toLocaleString()} years`;
 
   return (
     <Container>
@@ -151,42 +179,55 @@ function CreateSingle() {
         <div></div>
         <Segment>
           <Field
-            label="ERC20 Token Address"
-            value={token}
-            onChange={(ev) => setToken(ev.target.value)}
+            label="Owner Address (Defaults to connected account)"
+            value={owner}
+            onChange={(ev) => setOwner(ev.target.value)}
             placeholder="0x...."
           />
           <Field
             label="Beneficiary Address"
-            value={ethAddress}
-            onChange={(ev) => setEth(ev.target.value)}
+            value={beneficiary}
+            onChange={(ev) => setBeneficiary(ev.target.value)}
             placeholder="Target ethereum address"
           />
           <Field
-            label="Vesting Start Date"
-            value={startDate}
+            label="ERC20 Token Address (Defaults to MANA token)"
+            value={token}
+            onChange={(ev) => setToken(ev.target.value)}
+            placeholder="0x...."
+          />
+          <div style={{ display: "flex", flexDirection: "column", gap: "1rem", margin: "1rem 0 3rem" }}>
+            <Radio toggle label={`Revocable`} checked={revocable} onChange={(ev) => setRevocable(!revocable)} />
+            <Radio toggle label={`Pausable`} checked={pausable} onChange={(ev) => setPausable(!pausable)} />
+            <Radio toggle label={`Linear`} checked={linear} onChange={(ev) => setLinear(!linear)} />
+          </div>
+          <Field
+            label="Vesting Start Date (Defaults to today)"
+            value={start}
             type="date"
-            onChange={(ev) => setStartDate(ev.target.value)}
-            placeholder="Target ethereum address"
+            onChange={(ev) => setStart(ev.target.value)}
           />
           <Field
-            label={`Cliff (${estimateTime(cliff)})`}
+            label={`Cliff Duration in seconds (${estimateTime(cliff)})`}
             value={cliff}
             type="number"
             onChange={(ev) => setCliff(Number(ev.target.value))}
-            placeholder="Cliff in seconds"
           />
           <Field
-            label={`Duration (${estimateTime(duration)})`}
-            value={duration}
+            label={`Period Duration in seconds (${estimateTime(period)})`}
+            value={period}
             type="number"
-            onChange={(ev) => setDuration(Number(ev.target.value))}
-            placeholder="Duration in seconds"
+            onChange={(ev) => setPeriod(Number(ev.target.value))}
           />
-          <Radio toggle label={`Revocable`} checked={revocable} onChange={(ev) => setRevocable(!revocable)} />
+          <Field
+            label="Vested per period (comma separated)"
+            value={vestedPerPeriod}
+            onChange={(ev) => setVestedPerPeriod(ev.target.value)}
+            placeholder="100,200,300,400,500"
+          />
           <br />
           <br />
-          <Button primary id="submit" onClick={sendRequest} disabled={!ethAddress}>
+          <Button primary id="submit" onClick={sendRequest} disabled={!beneficiary}>
             Create Vesting Contract
           </Button>
         </Segment>
