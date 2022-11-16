@@ -29,8 +29,6 @@ const LINKS: {
   [key: number]: string;
 } = {
   1: "https://etherscan.io/tx/",
-  3: "https://ropsten.etherscan.io/tx/",
-  4: "https://rinkeby.etherscan.io/tx/",
   5: "https://goerli.etherscan.io/tx/",
 };
 
