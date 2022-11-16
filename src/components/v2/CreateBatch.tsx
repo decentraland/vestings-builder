@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { Button, Footer, Loader, Modal, Close } from "decentraland-ui";
+import { Button, Footer, Loader, Modal, Close, Field } from "decentraland-ui";
 import { ethers } from "ethers";
 import Web3Modal from "web3modal";
 import { Contract } from "@ethersproject/contracts";
@@ -50,11 +50,13 @@ export const injected = new InjectedConnector({
 });
 
 function CreateBatch() {
+  const { library, chainId, account, activate } = useWeb3React();
+
   const [loading, setLoading] = useState(false);
   const [txHash, setTxHash] = useState(null);
-  const { library, chainId, account, activate } = useWeb3React();
   const [file, setFile] = useState<Blob | null>();
   const [array, setArray] = useState<dataCSV[]>([]);
+  const [batchVestingAddress, setBatchVestingAddress] = useState("");
 
   const fileReader = new FileReader();
 
@@ -158,6 +160,18 @@ function CreateBatch() {
     }
   };
 
+  const closeModal = useCallback(() => {
+    setTxHash(null);
+  }, []);
+
+  const headerKeys = Object.keys(Object.assign({}, ...array));
+
+  useEffect(() => {
+    if (chainId && !batchVestingAddress) {
+      setBatchVestingAddress(ADDRESSES[chainId].BATCH_VESTINGS);
+    }
+  }, [chainId]);
+
   useEffect(() => {
     activate(injected);
     if (!account) {
@@ -177,12 +191,6 @@ function CreateBatch() {
         .finally(() => setLoading(false));
     }
   }, [account, activate]);
-
-  const closeModal = useCallback(() => {
-    setTxHash(null);
-  }, []);
-
-  const headerKeys = Object.keys(Object.assign({}, ...array));
 
   return (
     <div style={{ margin: "1rem" }}>
@@ -242,6 +250,12 @@ function CreateBatch() {
           </tbody>
         </table>
       </div>
+      <Field
+        label="Batch Vestings Address"
+        value={batchVestingAddress}
+        onChange={(ev) => setBatchVestingAddress(ev.target.value)}
+        message="This is the contract that will deploy all vesting defined in this UI. The default Batch Vestings address can be used by anyone. In order to avoid any kind of trouble, we recommend using a more permissioned Batch Vestings contract."
+      />
       <Button primary id="submit" onClick={sendTx} disabled={!array.length}>
         Create Vesting Contract
       </Button>

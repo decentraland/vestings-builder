@@ -53,38 +53,6 @@ function CreateSingle() {
   const [cliff, setCliff] = useState(Number(params.get("cliff")) || 1 * SECONDS_TO_YEARS);
   const [vestedPerPeriod, setVestedPerPeriod] = useState(params.get("vestedPerPeriod") || "");
 
-  useEffect(() => {
-    if (chainId && !token) {
-      setToken(ADDRESSES[chainId].MANA);
-    }
-  }, [chainId, token]);
-
-  useEffect(() => {
-    if (account && !owner) {
-      setOwner(account);
-    }
-  }, [account, owner]);
-
-  useEffect(() => {
-    activate(injected);
-    if (!account) {
-      setLoading(true);
-      const providerOptions = {};
-      const web3Modal = new Web3Modal({
-        cacheProvider: true, // optional
-        providerOptions, // required
-      });
-
-      web3Modal
-        .connect()
-        .catch((e) => {
-          console.error(e.message);
-          alert(e.message);
-        })
-        .finally(() => setLoading(false));
-    }
-  }, [account, activate]);
-
   const sendRequest = useCallback(async () => {
     // don't send again while we are sending
     if (loading || !chainId) return;
@@ -161,6 +129,38 @@ function CreateSingle() {
   }, []);
 
   const estimateTime = (seconds: number) => `about ${(seconds / SECONDS_TO_YEARS).toLocaleString()} years`;
+
+  useEffect(() => {
+    if (chainId && !token) {
+      setToken(ADDRESSES[chainId].MANA);
+    }
+  }, [chainId, token]);
+
+  useEffect(() => {
+    if (account && !owner) {
+      setOwner(account);
+    }
+  }, [account, owner]);
+
+  useEffect(() => {
+    activate(injected);
+    if (!account) {
+      setLoading(true);
+      const providerOptions = {};
+      const web3Modal = new Web3Modal({
+        cacheProvider: true, // optional
+        providerOptions, // required
+      });
+
+      web3Modal
+        .connect()
+        .catch((e) => {
+          console.error(e.message);
+          alert(e.message);
+        })
+        .finally(() => setLoading(false));
+    }
+  }, [account, activate]);
 
   return (
     <Container>
