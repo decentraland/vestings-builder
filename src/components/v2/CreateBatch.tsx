@@ -93,7 +93,7 @@ function CreateBatch() {
       );
 
       const batchVestings = new Contract(
-        ADDRESSES[chainId].BATCH_VESTINGS,
+        batchVestingAddress,
         batchVestingABI,
         library.getSigner(account).connectUnchecked()
       );
@@ -229,7 +229,7 @@ function CreateBatch() {
       </form>
 
       <br />
-      <div style={{ overflowX: "auto", marginBottom: '1rem' }}>
+      <div style={{ overflowX: "auto", marginBottom: "1rem" }}>
         <table>
           <thead>
             <tr key={"header"}>
