@@ -229,7 +229,7 @@ function CreateBatch() {
       </form>
 
       <br />
-      <div style={{ overflowX: "auto" }}>
+      <div style={{ overflowX: "auto", marginBottom: '1rem' }}>
         <table>
           <thead>
             <tr key={"header"}>
