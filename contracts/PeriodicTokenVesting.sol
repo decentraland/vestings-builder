@@ -47,6 +47,9 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
     /// @dev The timestamp in which the vesting was paused or revoked.
     uint256 private stop;
 
+    /// @dev The total amount of tokens that will be vested in this contract.
+    uint256 private total;
+
     event BeneficiaryUpdated(address indexed _newBeneficiary);
     event Revoked();
     event Released(address indexed _receiver, uint256 _amount);
@@ -125,7 +128,7 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
         // Initialize the Pausable contract.
         __Pausable_init();
 
-        // Set the rest of the initialization parameters
+        // Set the rest of the initialization parameters.
         _setBeneficiary(_beneficiary);
         token = IERC20(_token);
         isRevocable = _isRevocable;
@@ -135,6 +138,16 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
         period = _period;
         cliff = _cliff;
         vestedPerPeriod = _vestedPerPeriod;
+
+        // Calculate and store the total amount of tokens that will be vested in this contract.
+        uint256 mTotal;
+        for (uint256 i = 0; i < _vestedPerPeriod.length; ) {
+            mTotal += _vestedPerPeriod[i];
+            unchecked {
+                ++i;
+            }
+        }
+        total = mTotal;
     }
 
     /// @notice Get the beneficiary of the vested tokens.
@@ -206,6 +219,12 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
         return stop;
     }
 
+    /// @notice Get the total amount of tokens that will be vested in this contract.
+    /// @return The total amount of tokens that will be vested in this contract.
+    function getTotal() external view returns (uint256) {
+        return total;
+    }
+
     /// @notice Get if the vesting is revoked.
     /// @return If the vesting is revoked.
     function getIsRevoked() public view returns (bool) {
@@ -218,22 +237,6 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
     /// @return The amount of releasable tokens.
     function getReleasable() public view returns (uint256) {
         return getVested() - released;
-    }
-
-    /// @notice Get the total amount of tokens that will be vested in this contract.
-    /// @return The total amount of tokens that will be vested in this contract.
-    function getTotal() public view returns (uint256) {
-        uint256 total;
-
-        // Sum all the tokens vested per period to obtain the total amount.
-        for (uint i = 0; i < vestedPerPeriod.length; ) {
-            total += vestedPerPeriod[i];
-            unchecked {
-                ++i;
-            }
-        }
-
-        return total;
     }
 
     /// @notice Get the amount of tokens currently vested.
@@ -265,7 +268,7 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
         uint256 vested;
 
         // Add the vested amount for each period that has passed.
-        for (uint i = 0; i < elapsedPeriods; ) {
+        for (uint256 i = 0; i < elapsedPeriods; ) {
             vested += vestedPerPeriod[i];
             unchecked {
                 ++i;
@@ -392,7 +395,7 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
         // If it was not revoked, the sum of tokens vested in all defined periods should be
         // considered not surplus.
         else {
-            nonSurplus = getTotal();
+            nonSurplus = total;
         }
 
         // The beneficiary might have already released some tokens so we need to subtract that amount

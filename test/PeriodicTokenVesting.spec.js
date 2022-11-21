@@ -898,6 +898,22 @@ describe("PeriodicTokenVesting", () => {
       expect(await token.balanceOf(extra.address)).to.equal(totalToVest);
     });
 
+    it("should release surplus tokens after the vesting has ended", async () => {
+      await token.connect(treasury).transfer(vesting.address, totalToVestDoubled);
+
+      expect(await token.balanceOf(vesting.address)).to.equal(totalToVestDoubled);
+      expect(await token.balanceOf(extra.address)).to.equal(Zero);
+
+      await helpers.time.setNextBlockTimestamp(
+        initParams.start + initParams.period * initParams.vestedPerPeriod.length
+      );
+
+      await vesting.connect(owner).releaseSurplus(extra.address, totalToVest);
+
+      expect(await token.balanceOf(vesting.address)).to.equal(totalToVestDoubled.sub(totalToVest));
+      expect(await token.balanceOf(extra.address)).to.equal(totalToVest);
+    });
+
     it("should emit a ReleasedSurplus event", async () => {
       await token.connect(treasury).transfer(vesting.address, totalToVestDoubled);
 
