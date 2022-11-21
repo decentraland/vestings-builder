@@ -78,6 +78,10 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
     constructor() {
         // Prevent the implementation from being initialized.
         _disableInitializers();
+
+        // Set the owner to the deployer of the contract so that someone can release 
+        // foreign tokens that were sent to the contract by mistake.
+        _transferOwnership(_msgSender());
     }
 
     /// @notice Initialize the vesting contract.

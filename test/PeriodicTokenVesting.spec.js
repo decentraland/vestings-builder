@@ -69,6 +69,25 @@ describe("PeriodicTokenVesting", () => {
     initParamsList = Object.values(initParams);
   });
 
+  describe("constructor", () => {
+    it("should set the owner as the deployer", async () => {
+      expect(await vestingImpl.owner()).to.equal(deployer.address);
+    });
+
+    it("should allow the owner of the implementation to release foreign tokens", async () => {
+      const MockToken = await ethers.getContractFactory("MockToken");
+      foreignToken = await MockToken.deploy(parseEther("200"), vestingImpl.address);
+
+      expect(await foreignToken.balanceOf(vestingImpl.address)).to.equal(parseEther("200"));
+      expect(await foreignToken.balanceOf(extra.address)).to.equal(Zero);
+
+      await vestingImpl.connect(deployer).releaseForeignToken(foreignToken.address, extra.address, parseEther("200"));
+
+      expect(await foreignToken.balanceOf(vestingImpl.address)).to.equal(Zero);
+      expect(await foreignToken.balanceOf(extra.address)).to.equal(parseEther("200"));
+    });
+  });
+
   describe("initialize", () => {
     it("should have uninitialized values before initialization", async () => {
       expect(await vesting.owner()).to.equal(AddressZero);
