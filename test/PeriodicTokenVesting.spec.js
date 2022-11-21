@@ -81,6 +81,7 @@ describe("PeriodicTokenVesting", () => {
       expect(await vesting.getPeriod()).to.equal(Zero);
       expect(await vesting.getCliff()).to.equal(Zero);
       expect(await vesting.getVestedPerPeriod()).to.be.empty;
+      expect(await vesting.getTotal()).to.equal(Zero);
     });
 
     it("should initialize values", async () => {
@@ -100,6 +101,7 @@ describe("PeriodicTokenVesting", () => {
       expect(await vesting.getPeriod()).to.equal(initParams.period);
       expect(await vesting.getCliff()).to.equal(initParams.cliff);
       expect(await vesting.getVestedPerPeriod()).to.have.same.deep.members(vestedPerPeriod);
+      expect(await vesting.getTotal()).to.equal(totalToVest);
     });
 
     it("should support 1250 periods with 1 million to vest each", async () => {
