@@ -16,19 +16,19 @@ function getLibrary(provider: any) {
 
 const router = createBrowserRouter([
   {
-    path: "/",
+    path: "/old",
     element: <App />,
   },
   {
-    path: "/batch",
+    path: "/old/batch",
     element: <CreateInBatch />,
   },
   {
-    path: "/v2",
+    path: "/",
     element: <CreateSingle />,
   },
   {
-    path: "/v2/batch",
+    path: "/batch",
     element: <CreateBatch />,
   },
   {
