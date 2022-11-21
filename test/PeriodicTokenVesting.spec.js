@@ -793,18 +793,18 @@ describe("PeriodicTokenVesting", () => {
     });
 
     it("should not update the stop timestamp when the vesting was paused", async () => {
-      await helpers.time.setNextBlockTimestamp(initParams.start + initParams.period * 1);
+      await helpers.time.setNextBlockTimestamp(initParams.start + initParams.period);
 
       await vesting.connect(owner).pause();
 
-      expect(await vesting.getStop()).to.be.equal(initParams.start + initParams.period * 1);
+      expect(await vesting.getStop()).to.be.equal(initParams.start + initParams.period);
       expect(await vesting.getVested()).to.be.equal(initParams.vestedPerPeriod[0]);
 
       await helpers.time.setNextBlockTimestamp(initParams.start + initParams.period * 2);
 
       await vesting.connect(owner).revoke();
 
-      expect(await vesting.getStop()).to.be.equal(initParams.start + initParams.period * 1);
+      expect(await vesting.getStop()).to.be.equal(initParams.start + initParams.period);
       expect(await vesting.getVested()).to.be.equal(initParams.vestedPerPeriod[0]);
     });
 
