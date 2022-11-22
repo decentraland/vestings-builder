@@ -19,6 +19,7 @@
     "@web3-react/injected-connector": "^6.0.7",
     "decentraland-ui": "^2.10.2",
     "dotenv": "^16.0.3",
+    "ethers": "^5.7.2",
     "hardhat": "^2.11.2",
     "react": "^16.10.2",
     "react-dom": "^16.10.2",
