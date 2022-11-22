@@ -162,6 +162,8 @@ function CreateSingle() {
     }
   }, [account, activate]);
 
+  const oldUrl = `${window.location.origin}/old`;
+
   return (
     <Container>
       <div className="App">
@@ -176,8 +178,11 @@ function CreateSingle() {
             </>
           </Modal.Content>
         </Modal>
-        <div></div>
         <Segment>
+          <p style={{ maxWidth: 700, marginBottom: "3rem" }}>
+            <b>NOTICE:</b> This is the UI for deploying the new PeriodicTokenVesting contract. If you need to deploy the
+            old contract, you can still do it in <a href={oldUrl}>{oldUrl}</a>
+          </p>
           <Field
             label="Owner Address (Defaults to connected account)"
             value={owner}

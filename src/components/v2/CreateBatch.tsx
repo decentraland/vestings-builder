@@ -209,9 +209,8 @@ function CreateBatch() {
       </Modal>
       <h1>Create Vestings By CSV</h1>
       <p>
-        <b>NOTICE:</b> This is the UI for deploying in batch the new PeriodicTokenVesting contract with extended
-        features such as pause/unpause and linear/step vesting. If you need to deploy the old contract, you can still do
-        it in <a href={oldUrl}>{oldUrl}</a>
+        <b>NOTICE:</b> This is the UI for deploying in batch the new PeriodicTokenVesting contract. If you need to
+        deploy the old contract, you can still do it in <a href={oldUrl}>{oldUrl}</a>
       </p>
       <h2>Example:</h2>
       <div style={{ overflowX: "auto" }}>
