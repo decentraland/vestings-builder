@@ -3,10 +3,10 @@ import ReactDOM from "react-dom";
 import { createBrowserRouter, RouterProvider, redirect } from "react-router-dom";
 import { Web3ReactProvider } from "@web3-react/core";
 import { Web3Provider } from "@ethersproject/providers";
-import App from "./App";
-import CreateInBatch from "./CreateInBatch";
-import CreateSingle from "./components/v2/CreateSingle";
-import CreateBatch from "./components/v2/CreateBatch";
+import CreateSingleV1 from "./components/v1/CreateSingle";
+import CreateBatchV1 from "./components/v1/CreateBatch";
+import CreateSingleV2 from "./components/v2/CreateSingle";
+import CreateBatchV2 from "./components/v2/CreateBatch";
 import "decentraland-ui/lib/styles.css";
 import "./index.css";
 
@@ -16,20 +16,20 @@ function getLibrary(provider: any) {
 
 const router = createBrowserRouter([
   {
-    path: "/old",
-    element: <App />,
-  },
-  {
-    path: "/old/batch",
-    element: <CreateInBatch />,
-  },
-  {
     path: "/",
-    element: <CreateSingle />,
+    element: <CreateSingleV2 />,
   },
   {
     path: "/batch",
-    element: <CreateBatch />,
+    element: <CreateBatchV2 />,
+  },
+  {
+    path: "/old",
+    element: <CreateSingleV1 />,
+  },
+  {
+    path: "/old/batch",
+    element: <CreateBatchV1 />,
   },
   {
     path: "*",
