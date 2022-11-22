@@ -11,7 +11,7 @@ interface IVestingFactory {
 }
 
 contract OwnableBatchVestings {
-    address public owner;
+    address public immutable owner;
 
     constructor(address _owner) {
         owner = _owner;
