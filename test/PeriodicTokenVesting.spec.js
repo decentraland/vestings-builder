@@ -171,6 +171,15 @@ describe("PeriodicTokenVesting", () => {
         "PeriodicTokenVesting#initialize: INVALID_VESTED_PER_PERIOD_LENGTH"
       );
     });
+
+    it("reverts when start is 0", async () => {
+      initParams.start = 0;
+      initParamsList = Object.values(initParams);
+
+      await expect(vesting.initialize(...initParamsList)).to.be.revertedWith(
+        "PeriodicTokenVesting#initialize: INVALID_START"
+      );
+    });
   });
 
   describe("getTotal", () => {
