@@ -108,6 +108,8 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
             "PeriodicTokenVesting#initialize: INVALID_TOKEN"
         );
 
+        require(_start != 0, "PeriodicTokenVesting#initialize: INVALID_START");
+
         require(
             _period != 0,
             "PeriodicTokenVesting#initialize: INVALID_PERIOD_DURATION"
