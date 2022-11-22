@@ -23,7 +23,10 @@ contract OwnableBatchVestings {
         bytes32 _salt,
         bytes[] calldata _datas
     ) external {
-        require(msg.sender == owner, "OwnableBatchVestings#SENDER_NOT_OWNER");
+        require(
+            msg.sender == owner,
+            "OwnableBatchVestings#createVestings: NOT_OWNER"
+        );
 
         for (uint256 i = 0; i < _datas.length; i++) {
             _factory.createVesting(
