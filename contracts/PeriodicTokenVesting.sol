@@ -226,10 +226,11 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
     /// @return The total amount of tokens that will be vested in this contract.
     function getTotal() public view returns (uint256) {
         uint256 total;
+        uint256[] memory mVestedPerPeriod = vestedPerPeriod;
 
         // Sum all the tokens vested per period to obtain the total amount.
-        for (uint i = 0; i < vestedPerPeriod.length; ) {
-            total += vestedPerPeriod[i];
+        for (uint256 i = 0; i < mVestedPerPeriod.length; ) {
+            total += mVestedPerPeriod[i];
             unchecked {
                 ++i;
             }
