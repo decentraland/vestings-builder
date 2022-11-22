@@ -147,3 +147,5 @@ We have been asked to vest different amount of tokens each year of the vesting, 
 ```
 
 We have a cliff of a year and a half, so until that time elapses, the contract will vest nothing. Once the year and a half passes, the contract will vest what corresponds to that time. It will vest all the tokens from the first period as it has elapsed completely, and will vest half of the tokens defined in the second period, as only half of that period has passed.
+
+.
