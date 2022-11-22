@@ -325,7 +325,10 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
         require(isRevocable, "PeriodicTokenVesting#revoke: NON_REVOCABLE");
 
         isRevoked = true;
-        stop = block.timestamp;
+
+        if (!paused()) {
+            stop = block.timestamp;
+        }
 
         emit Revoked();
     }
