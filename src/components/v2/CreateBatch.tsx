@@ -66,7 +66,10 @@ function CreateBatch() {
 
   const csvFileToArray = (string: string) => {
     const csvHeader = string.trim().slice(0, string.indexOf("\n")).split(",");
-    const csvRows = string.slice(string.indexOf("\n") + 1).split("\n");
+    const csvRows = string
+      .slice(string.indexOf("\n") + 1)
+      .split("\n")
+      .filter((row) => row !== "");
 
     const array = csvRows.map((i) => {
       const values = i.split(",");
