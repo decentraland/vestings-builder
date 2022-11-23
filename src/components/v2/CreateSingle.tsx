@@ -19,7 +19,7 @@ const ADDRESSES: {
   };
 } = {
   5: {
-    IMPLEMENTATION: "0x9341ff4a27d7d0bbf67a6dbaa1b3454c6c9948f5",
+    IMPLEMENTATION: "0x3b2149a7573e2b0dd157307d427b9380f8f1b2a1",
     FACTORY: "0x11a970e744ff69db8f461c2d0fc91d4293914301",
     MANA: "0xe7fdae84acaba2a5ba817b6e6d8a2d415dbfedbe",
   },
