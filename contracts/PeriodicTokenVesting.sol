@@ -268,7 +268,7 @@ contract PeriodicTokenVesting is OwnableUpgradeable, PausableUpgradeable {
         uint256 vested;
 
         // Add the vested amount for each period that has passed.
-        for (uint i = 0; i < elapsedPeriods; ) {
+        for (uint256 i = 0; i < elapsedPeriods; ) {
             vested += vestedPerPeriod[i];
             unchecked {
                 ++i;
