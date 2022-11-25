@@ -95,6 +95,7 @@ function CreateBatch() {
     if (loading || !chainId) return;
     // update state
     setLoading(true);
+    setError("");
     try {
       const vestingImplementation = new Contract(
         ADDRESSES[chainId].IMPLEMENTATION,
@@ -110,7 +111,6 @@ function CreateBatch() {
       const inputData = [];
 
       for (const vestingData of array) {
-        console.log(vestingData);
         const _owner = (vestingData as any).owner;
         const _beneficiary = (vestingData as any).beneficiary;
         const _token = (vestingData as any).token;
@@ -150,7 +150,7 @@ function CreateBatch() {
 
       setTxHash(tx.hash);
     } catch (e) {
-      console.error((e as Error).message);
+      setError((e as Error).message);
       setTxHash(null);
     } finally {
       setLoading(false);
@@ -275,6 +275,7 @@ function CreateBatch() {
       <Button primary id="submit" onClick={sendTx} disabled={!array.length}>
         Create Vesting Contract
       </Button>
+      {error && <p style={{ color: "red", marginTop: "1rem" }}>{error}</p>}
       <Footer></Footer>
     </div>
   );
