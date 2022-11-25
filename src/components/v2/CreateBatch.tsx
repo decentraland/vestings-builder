@@ -18,6 +18,12 @@ const ADDRESSES: {
     MANA: string;
   };
 } = {
+  1: {
+    BATCH_VESTINGS: "0xc57185366bcda81cde363380e2099758712038d0",
+    IMPLEMENTATION: "0x42f32e19365d8045661a006408cc6d1064039fbf",
+    FACTORY: "0xe357273545c152f07afe2c38257b7b653fd3f6d0",
+    MANA: "0x0f5d2fb29fb7d3cfee444a200298f468908cc942",
+  },
   5: {
     BATCH_VESTINGS: "0x651440486194aeca2cfff6e344bd604dda8a2d7f",
     IMPLEMENTATION: "0x3b2149a7573e2b0dd157307d427b9380f8f1b2a1",
@@ -46,7 +52,7 @@ export type dataCSV = {
 };
 
 export const injected = new InjectedConnector({
-  supportedChainIds: [5],
+  supportedChainIds: [1, 5],
 });
 
 function CreateBatch() {
@@ -57,6 +63,7 @@ function CreateBatch() {
   const [file, setFile] = useState<Blob | null>();
   const [array, setArray] = useState<dataCSV[]>([]);
   const [batchVestingAddress, setBatchVestingAddress] = useState("");
+  const [error, setError] = useState("");
 
   const fileReader = new FileReader();
 
