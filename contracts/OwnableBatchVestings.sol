@@ -11,9 +11,14 @@ interface IVestingFactory {
 }
 
 contract OwnableBatchVestings {
-    address public immutable owner;
+    address public owner;
 
-    constructor(address _owner) {
+    function initialize(address _owner) external {
+        require(
+            owner == address(0) && _owner != address(0),
+            "OwnableBatchVestings#initialize: INITIALIZATION_FAILED"
+        );
+
         owner = _owner;
     }
 
