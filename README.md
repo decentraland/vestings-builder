@@ -1,51 +1,139 @@
 # Decentraland Vesting Generator
 
-A dApp to deploy a [generic vesting contract](./contracts/VestingImpl.sol): A token holder contract that can release its token balance gradually like a typical vesting scheme, with a cliff and vesting period. Optionally revocable by the owner.
+Allows the deployment of a single or multiple [Periodic Token Vesting](#periodic-token-vesting) contracts. 
+Still supports the deployment of the original [Token Vesting](./contractsOld/VestingImpl.sol) contract.
 
 ## Use it
 
-Enter: https://vestings-deployer.vercel.app/
+https://vestings-deployer.vercel.app/ to deploy a single `PeriodicTokenVesting` contract.
 
-For creating in batch by using a CSV use: https://vestings-deployer.vercel.app/batch
+https://vestings-deployer.vercel.app/batch to deploy multiple `PeriodicTokenVesting` contracts in batch using a csv file.
 
-You can fill form default values using query string parameters:
+To use the UI for deploying the original `TokenVesting` contract, you have to append `/old` to the URL. For example:  
 
+https://vestings-deployer.vercel.app/old to deploy a single `TokenVesting` contract.
+
+https://vestings-deployer.vercel.app/old/batch to deploy a multiple `TokenVesting` contracts in batch using a csv file.
+
+For single deployments, you can set values optionally through the URL instead of filling them in the form by providing query params for each of them as follows:
+
+```text
+https://vestings-deployer.vercel.app/?owner=<address>&beneficiary=<address>&token=<address>
 ```
-https://vestings-deployer.vercel.app/?token=<ADDRESS>&beneficiary=<ADDRESS>&start=<YYYY-MM-DD>&duration=<SECONDS>&cliff=<SECONDS>&revocable=no
+
+Query params supported by the `PeriodicTokenVesting` deployment UI are:
+
+```text
+owner=<address>
+beneficiary=<address>
+token=<address>
+revocable=<yes|no>
+pausable=<yes|no>
+linear=<yes|no>
+start=<yyyy-mm-dd>
+period=<seconds>
+cliff=<seconds>
+vestedPerPeriod=<comma separated numbers>
+```
+
+Query params supported by the original `TokenVesting` deployment UI are:
+
+```text
+beneficiary=<address>
+token=<address>
+cliff=<seconds>
+revocable=<yes|no>
+start=<yyyy-mm-dd>
+duration=<seconds>
 ```
 
 ## Development
 
-```bash
-npm i
+Required software
+
+```text
+node ^16
+npm ^7
+```
+
+Install dependencies.
+
+```shell
+npm ci
+```
+
+Run frontend.
+
+```shell
 npm start
+```
+
+Compile Smart Contracts inside the `./contracts` directory.
+
+```shell
+npx hardhat compile
+```
+
+Run Smart Contract tests.
+
+```shell
+npx hardhat test
+```
+
+Run Smart Contract tests with coverage. 
+
+```shell
+npx hardhat coverage
 ```
 
 # Periodic Token Vesting
 
 [![codecov](https://codecov.io/github/decentraland/vestings-builder/branch/master/graph/badge.svg?token=1CBBGTGZR5)](https://codecov.io/github/decentraland/vestings-builder)
 
-Allows vesting a token in different amounts through consecutive periods of time of the same length.
+Allows vesting an ERC20 token through consecutive periods of time of the same length.
 
-The most common vestings would just accrue vested tokens linearly in a given period of time, sometimes with a cliff to prevent releasing these tokens for a fraction of that time.
+Each period is defined with an amount of tokens to be vested. 
+If the contract is defined as Linear, the amount defined in the current period will be vested proportionally to the time that has elapsed. 
+If it is not, only when the period elapses the amount defined will be vested.
 
-By having the possibility to define periods and how many tokens each period vests, one can create a program in which custom amount of tokens become releasable as each period progresses.
+The beneficiary is the only address able to release vested tokens. 
+When releasing, the beneficiary can choose which address will receive the vested tokens as well as the amount.
+The beneficiary can also transfer the beneficiary status to another address. 
 
-## Test
+When initializing the contract, it can be defined as revocable and/or pausable. 
+Only the owner can pause or revoke the contract.
+If the contract is paused or revoked, tokens will stop vesting up to that timestamp.
+A paused contract can be unpaused, resuming the normal course of the vesting. 
+However, revoking a contract is irreversible, once revoked the vesting is stopped forever. 
 
-Install dependencies with `npm ci`.
+The contract will start vesting the moment it has been defined to do so, despite if it has been funded with tokens.
+The beneficiary is only able to release an amount of tokens that the contract actually has in its balance.
+For example, if the contract has vested 100 tokens, but it only has 10 in its balance, the beneficiary will only be able to release up to 10 tokens.
+It will fail otherwise.
 
-Compile contracts with `npx hardhat compile`.
+Moreover, the amount of tokens in the contract's balance that exceeds the amount of tokens that will be vested through the sum of all periods is considered surplus.
+The owner of the contract can release any amount of surplus tokens to the desired recipient. 
+When a contract is revoked, all non-vested tokens will become surplus, allowing the owner of the contract to withdraw them.
 
-Run tests defined in the `./test` directory with `npx hardhat test`.
+## Deployment and Initialization
 
-You can run tests with coverage report with `npx hardhat coverage`.
+The contract has been developed to be used as the implementation of multiple proxies. 
+The deployed contract cannot be used directly as it cannot be initialized due to the `_disableInitializers` in its constructor which is intended to prevent the initialization of implementations.
 
-## initialize
+Once a proxy is deployed with the implementation address being the deployed PeriodicTokenVesting contract, it has to be initialized once calling the `initialize` function.
 
-This contract was intended to be used through a minimal proxy. And as most contracts being deployed this way, it has an initialize function to initialize the contract with the configuration needed.
-
-```sol
+```solidity
+/// @notice Initialize the vesting contract.
+/// @param _owner The owner of the contract.
+/// @param _beneficiary The address that can release the vested tokens.
+/// @param _token The token being vested.
+/// @param _isRevocable Determines if the contract has been revoked.
+/// @param _isPausable Determines if the vesting can be paused.
+/// @param _isLinear Determines if the tokens are vested linearly between periods.
+/// @param _start The time in which the vesting starts.
+/// @param _period The duration in seconds of a vesting period.
+/// @param _cliff The duration in seconds of the cliff.
+/// @param _vestedPerPeriod The number of tokens vested on each period.
 function initialize(
     address _owner,
     address _beneficiary,
@@ -54,24 +142,15 @@ function initialize(
     bool _isPausable,
     bool _isLinear,
     uint256 _start,
-    uint256 _periodDuration,
-    uint256 _cliffDuration,
+    uint256 _period,
+    uint256 _cliff,
     uint256[] calldata _vestedPerPeriod
 ) external initializer {}
 ```
 
-- **owner:** The address that can revoke or pause/unpause the vesting. Is also able to release any surplus or foreign tokens sent to the contract.
-- **beneficiary:** The address that can release and transfer any vested tokens.
-- **token:** The address of the ERC20 token that will be vested.
-- **isRevocable:** Determines if the contract can be revoked by the owner.
-- **isPausable:** Determines if the contract can be paused by the owner.
-- **isLinear:** Determines if tokens will be vested every second in the current period instead of having to wait a whole period to progress for more tokens to become releasable.
-- **start:** The timestamp when the vesting starts.
-- **periodDuration:** The duration in seconds of a period.
-- **cliffDuration:** The duration in seconds of the cliff.
-- **vestedPerPeriod:** How much tokens are vested on each consecutive period.
+## Examples
 
-## Example 1
+**Example 1**
 
 We might want to create a vesting with the following conditions:
 
@@ -114,7 +193,7 @@ We need to configure 16 periods to reflect these values, so the first 2.5k token
 Every quarter that passes will vest the amount defined for the corresponding period, always taking into consideration the cliff. In this example, when the year elapses, 208.33 * 4 will be vested as the cliff is over. Then, every quarter that passes will vest the extra tokens it has defined until all periods are over and the 10k can be released.
 
 
-## Example 2
+**Example 2**
 
 We might want to create a vesting with the following conditions:
 
