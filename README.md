@@ -227,3 +227,41 @@ We have been asked to vest different amount of tokens each year of the vesting, 
 
 We have a cliff of a year and a half, so until that time elapses, the contract will vest nothing. Once the year and a half passes, the contract will vest what corresponds to that time. It will vest all the tokens from the first period as it has elapsed completely, and will vest half of the tokens defined in the second period, as only half of that period has passed.
 .
+
+
+**Example 3**
+
+Consider the following setup for the "Higher Tier" schedule:
+
+- 60000 in tokens total amount
+- 6 Months duration
+- 10k tokens are vested each 30 days, for a total of 60k tokens
+- Initialized to start on either 1st or 15th of month
+
+This new vesting schedule will follow a step function, where compensation is made available in chunks over periods of time.
+
+### isLinear
+
+Has to be false, this is because we want tokens to be vested by period and not every second.
+
+### periodDuration
+
+We are asked to vest different amounts on each 30 days, so we will need to configure 6 different periods. As we have 6 periods in a vesting of 6 months, the period duration should be of 30 days.
+
+### cliffDuration
+
+The cliff duration is not required when using vesting per period logic. Funds will only vest after the first period duration has passed, the same as using a cliff.
+
+### vestedPerPeriod
+
+We have been asked to vest an equal amount of tokens each 30 days of the vesting, so we will need to define 6 equal periods.
+
+```js
+[10000, 10000, 10000, 10000, 10000, 10000];
+// All values in the array will add up to 60K
+```
+The contract will vest what corresponds to each period, only after the period has elapsed.
+.
+
+### startTime
+The start time will be set to the timestamp of the 1st of 15th of the starting month. 
