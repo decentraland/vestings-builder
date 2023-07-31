@@ -24,18 +24,18 @@ const ADDRESSES: {
     FACTORY: "0xe357273545c152f07afe2c38257b7b653fd3f6d0",
     MANA: "0x0f5d2fb29fb7d3cfee444a200298f468908cc942",
   },
-  5: {
-    BATCH_VESTINGS: "0x651440486194aeca2cfff6e344bd604dda8a2d7f",
-    IMPLEMENTATION: "0x3b2149a7573e2b0dd157307d427b9380f8f1b2a1",
-    FACTORY: "0x11a970e744ff69db8f461c2d0fc91d4293914301",
-    MANA: "0xe7fdae84acaba2a5ba817b6e6d8a2d415dbfedbe",
+  11155111: {
+    BATCH_VESTINGS: "0x380e46851c47b73b6aa9bea50cf3b50e2cf637cf",
+    IMPLEMENTATION: "0xfbbda3074423aad9c0078086564651bb6b0ab2bd",
+    FACTORY: "0x71c84760df0537f7db286274817462dc2e6c1366",
+    MANA: "0xfa04d2e2ba9aec166c93dfeeba7427b2303befa9",
   },
 };
 const LINKS: {
   [key: number]: string;
 } = {
   1: "https://etherscan.io/tx/",
-  5: "https://goerli.etherscan.io/tx/",
+  11155111: "https://sepolia.etherscan.io/tx/",
 };
 
 export type dataCSV = {
@@ -52,7 +52,7 @@ export type dataCSV = {
 };
 
 export const injected = new InjectedConnector({
-  supportedChainIds: [1, 5],
+  supportedChainIds: [1, 11155111],
 });
 
 function CreateBatch() {
