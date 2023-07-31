@@ -26,32 +26,18 @@ const ADDRESSES: {
     FACTORY: "0xe357273545c152f07afe2c38257b7b653fd3f6d0",
     MANA: "0x0f5d2fb29fb7d3cfee444a200298f468908cc942",
   },
-  3: {
-    BATCH_VESTINGS: "0xedbea1174b892f88a836f61de395f5f155d4d2a9",
-    IMPLEMENTATION: "0xc243b243a2033348730420ea55239767802a19d0",
-    FACTORY: "0xcbfa36f59246ae43cb827a77f6ca955b93dd6042",
-    MANA: "0x2a8fd99c19271f4f04b1b7b9c4f7cf264b626edb",
-  },
-  4: {
-    BATCH_VESTINGS: "",
-    IMPLEMENTATION: "0x8493bb6ae17e12c062b0eb1fe780cc0b2df16bb2",
-    FACTORY: "0x64c9f713a743458ab22ec49d88dd00621f528786",
-    MANA: "0x28bce5263f5d7f4eb7e8c6d5d78275ca455bac63",
-  },
-  5: {
-    BATCH_VESTINGS: "0x651440486194aeca2cfff6e344bd604dda8a2d7f",
-    IMPLEMENTATION: "0xa1c496c3beca1832a8434ac77ee3a1a53881c12e",
-    FACTORY: "0x11a970e744ff69db8f461c2d0fc91d4293914301",
-    MANA: "0xe7fdae84acaba2a5ba817b6e6d8a2d415dbfedbe",
+  11155111: {
+    BATCH_VESTINGS: "0x380e46851c47b73b6aa9bea50cf3b50e2cf637cf",
+    IMPLEMENTATION: "0x6ad9fb3f07a6013e6db2327e27ad0a38e858d88d",
+    FACTORY: "0x71c84760df0537f7db286274817462dc2e6c1366",
+    MANA: "0xfa04d2e2ba9aec166c93dfeeba7427b2303befa9",
   },
 };
 const LINKS: {
   [key: number]: string;
 } = {
   1: "https://etherscan.io/tx/",
-  3: "https://ropsten.etherscan.io/tx/",
-  4: "https://rinkeby.etherscan.io/tx/",
-  5: "https://goerli.etherscan.io/tx/",
+  11155111: "https://sepolia.etherscan.io/tx/",
 };
 
 export type dataCSV = {
@@ -65,7 +51,7 @@ export type dataCSV = {
 };
 
 export const injected = new InjectedConnector({
-  supportedChainIds: [1, 3, 4, 5, 42],
+  supportedChainIds: [1, 11155111],
 });
 
 function CreateBatch() {
