@@ -51,7 +51,7 @@ function CreateSingle() {
   const [cliff, setCliff] = useState(Number(params.get("cliff")) || 1.5 * SECONDS_TO_YEARS);
   const [duration, setDuration] = useState(Number(params.get("duration")) || 365 * 5 * 24 * 60 * 60);
   const [ethAddress, setEth] = useState(params.get("beneficiary") || "");
-  const [token, setToken] = useState(params.get("token") || ADDRESSES[1].MANA);
+  const [token, setToken] = useState(params.get("token") || "");
   const [revocable, setRevocable] = useState(params.get("revocable") !== "no");
   const { library, chainId, account, activate } = useWeb3React();
 
@@ -74,6 +74,12 @@ function CreateSingle() {
         .finally(() => setLoading(false));
     }
   }, [account, activate]);
+
+  useEffect(() => {
+    if (chainId && !token) {
+      setToken(ADDRESSES[chainId].MANA);
+    }
+  }, [chainId, token])
 
   const sendRequest = useCallback(async () => {
     // don't send again while we are sending
